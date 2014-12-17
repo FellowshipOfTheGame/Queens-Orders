@@ -16,7 +16,7 @@ ARTS_Camera::ARTS_Camera(const FObjectInitializer& ObjectInitializer)
 	camera->bUsePawnControlRotation = false; // Don't rotate camera with controller
 
 	FTransform transform;
-	transform.SetLocation(FVector(-70000.0, 0, 8000));
+	transform.SetLocation(FVector(-70000.0, 0, 7000));
 	transform.SetRotation(FQuat(FRotator(-60.f, 0.f, 0.f)));
 	camera->SetWorldTransform(transform);
 

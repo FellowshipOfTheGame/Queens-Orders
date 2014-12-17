@@ -16,4 +16,30 @@ class WARGAME_API ARTS_GameMode : public AGameMode
 public:	
 	ARTS_GameMode(const FObjectInitializer& ObjectInitializer);
 	
+
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
+		UClass *buildingBarracks;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
+		UClass *buildingRanger;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
+		UClass *buildingTower;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
+		UClass *buildingCitadel;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
+		UClass *buildingGate;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
+		UClass *buildingKeep;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
+		UClass *buildingStoneMine;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
+		UClass *buildingGoldMine;
+
 };

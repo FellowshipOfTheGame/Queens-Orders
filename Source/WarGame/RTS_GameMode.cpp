@@ -10,4 +10,6 @@ ARTS_GameMode::ARTS_GameMode(const FObjectInitializer& ObjectInitializer) : Supe
 {
 	DefaultPawnClass = ARTS_Camera::StaticClass();
 	PlayerControllerClass = ARTS_Controller::StaticClass();
+
+
 }

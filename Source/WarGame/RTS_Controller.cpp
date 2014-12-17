@@ -11,26 +11,31 @@ void ARTS_Controller::BeginPlay()
 	bEnableClickEvents = true;
 	bEnableMouseOverEvents = true;
 
-	// ViewTarget = GetWorld()->SpawnActor<ARTS_Camera>();
-
-	// Alterar view target
-	// SetViewTarget(ViewTarget->camera);
 }
 
-
-
-void ARTS_Controller::setCurrentSelectedSlot(UObject *slot)
+void ARTS_Controller::setCurrentSelectedSlot(ABuildingSlot *slot)
 {
+	if (currentBuildingSlot == slot)
+		return;
+
+
 	// Hide options for that object
-	if (currentBuildingSlot != nullptr){
-		//currentBuildingSlot->HideOptions();
+	if (currentBuildingSlot){
+		currentBuildingSlot->HideOptions();
 	}
+
 
 	currentBuildingSlot = slot;
 
 	// Show options for selected object
-	if (currentBuildingSlot != nullptr){
-		//currentBuildingSlot->ShowOptions();
+	if (currentBuildingSlot){
+		currentBuildingSlot->ShowOptions();
 	}
 	
+}
+
+
+ABuildingSlot* ARTS_Controller::getCurrentSelectedSlot() const
+{
+	return currentBuildingSlot;
 }

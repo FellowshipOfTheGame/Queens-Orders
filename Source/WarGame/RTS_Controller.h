@@ -3,6 +3,9 @@
 #pragma once
 
 #include "GameFramework/PlayerController.h"
+
+#include "BuildingSlot.h"
+
 #include "RTS_Controller.generated.h"
 
 /**
@@ -16,7 +19,11 @@ class WARGAME_API ARTS_Controller : public APlayerController
 public:
 
 	// Constructions
-	void setCurrentSelectedSlot(UObject *slot);
+	UFUNCTION(BlueprintCallable, Category = "Buildings")
+		void setCurrentSelectedSlot(ABuildingSlot *slot);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Buildings")
+		ABuildingSlot* getCurrentSelectedSlot() const;
 
 
 	// Actor interface
@@ -24,6 +31,6 @@ public:
 	
 
 private:
-	UObject *currentBuildingSlot;
+	ABuildingSlot *currentBuildingSlot;
 
 };
