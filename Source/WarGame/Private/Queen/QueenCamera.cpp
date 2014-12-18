@@ -1,13 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "WarGame.h"
-#include "RTS_Camera.h"
+#include "QueenCamera.h"
 
+const FName AQueenCamera::MoveForwardBinding("CameraVertical");
+const FName AQueenCamera::MoveRightBinding("CameraHorizontal");
 
-const FName ARTS_Camera::MoveForwardBinding("CameraVertical");
-const FName ARTS_Camera::MoveRightBinding("CameraHorizontal");
-
-ARTS_Camera::ARTS_Camera(const FObjectInitializer& ObjectInitializer)
+AQueenCamera::AQueenCamera(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	// Criar camera
@@ -22,19 +21,10 @@ ARTS_Camera::ARTS_Camera(const FObjectInitializer& ObjectInitializer)
 
 }
 
-
-void ARTS_Camera::SetupPlayerInputComponent(UInputComponent* InputComponent)
+void AQueenCamera::Tick(float DeltaSeconds)
 {
-	check(InputComponent);
-
-	// set up gameplay key bindings
-	InputComponent->BindAxis(MoveForwardBinding);
-	InputComponent->BindAxis(MoveRightBinding);
-}
-
-void ARTS_Camera::Tick(float DeltaSeconds)
-{
-	float MoveSpeed = 30000.0f;
+	FVector Vector = camera->GetComponentLocation();
+	float MoveSpeed = 30000.0f + Vector.X;
 
 	// Find movement direction
 	const float ForwardValue = GetInputAxisValue(MoveForwardBinding);
@@ -46,7 +36,7 @@ void ARTS_Camera::Tick(float DeltaSeconds)
 	// Calculate  movement
 	const FVector Movement = MoveDirection * MoveSpeed * DeltaSeconds;
 
-	camera->SetWorldLocation(camera->GetComponentLocation() + Movement);
+	//camera->SetWorldLocation(camera->GetComponentLocation() + Movement);
 
 	// GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Direction: %f %f"), Movement.X, Movement.Y )	);
 

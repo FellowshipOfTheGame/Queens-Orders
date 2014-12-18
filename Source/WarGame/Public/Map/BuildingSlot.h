@@ -29,11 +29,11 @@ public:
 
 	/* Init stuff */
 	UFUNCTION(BlueprintCallable, Category = "Init")
-		void init(UWidgetComponent *gui);
+	void init(UWidgetComponent *gui);
 
 	/* Build a new building on this slot. Returns true on success. */
 	UFUNCTION(BlueprintCallable, Category = "Building")
-		bool OnBuildOnSlot(EBuildingTypes type);
+	bool OnBuildOnSlot(EBuildingTypes type);
 
 	void ShowOptions();
 	void HideOptions();
@@ -43,15 +43,15 @@ public:
 
 	/* Widget used as user interface for this slot. */
 	UPROPERTY(BlueprintReadWrite, Category = "UI")
-		UWidgetComponent *widget;
+	UWidgetComponent *widget;
 
 	/* Building types accepted by this slot */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Building")
-		TArray< EBuildingTypes > buildingTypes;
+	TArray< EBuildingTypes > buildingTypes;
 
 	/* Current building on slot. */
 	UPROPERTY(BlueprintReadOnly, Category = "Building")
-		ABuilding *building;
+	ABuilding *building;
 
 
 private:

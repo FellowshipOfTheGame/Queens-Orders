@@ -3,29 +3,26 @@
 #pragma once
 
 #include "GameFramework/Pawn.h"
-#include "RTS_Camera.generated.h"
+#include "QueenCamera.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class WARGAME_API ARTS_Camera : public APawn
+class WARGAME_API AQueenCamera : public APawn
 {
 	GENERATED_BODY()
 	
 public:
-	ARTS_Camera(const FObjectInitializer& ObjectInitializer);
+	AQueenCamera(const FObjectInitializer& ObjectInitializer);
 	
 	// Begin APawn override
 	virtual void Tick(float DeltaSeconds) override;
-	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
 	// End APawn override
-
 
 	// Variables
 	UPROPERTY(Category = Camera, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent *camera;
-
 
 	// Static names for axis bindings
 	static const FName MoveForwardBinding;

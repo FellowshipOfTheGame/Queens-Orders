@@ -6,13 +6,13 @@
 
 #include "BuildingSlot.h"
 
-#include "RTS_Controller.generated.h"
+#include "QueenController.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class WARGAME_API ARTS_Controller : public APlayerController
+class WARGAME_API AQueenController : public APlayerController
 {
 	GENERATED_BODY()
 
@@ -20,11 +20,10 @@ public:
 
 	// Constructions
 	UFUNCTION(BlueprintCallable, Category = "Buildings")
-		void setCurrentSelectedSlot(ABuildingSlot *slot);
+	void setSelectedBuildSlot(ABuildingSlot *slot);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Buildings")
-		ABuildingSlot* getCurrentSelectedSlot() const;
-
+	ABuildingSlot* getSelectedBuildSlot() const;
 
 	// Actor interface
 	virtual void BeginPlay() override;

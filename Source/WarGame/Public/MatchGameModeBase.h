@@ -3,43 +3,40 @@
 #pragma once
 
 #include "GameFramework/GameMode.h"
-#include "RTS_GameMode.generated.h"
+#include "MatchGameModeBase.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class WARGAME_API ARTS_GameMode : public AGameMode
+class WARGAME_API AMatchGameModeBase : public AGameMode
 {
 	GENERATED_BODY()
 
 public:	
-	ARTS_GameMode(const FObjectInitializer& ObjectInitializer);
+	AMatchGameModeBase(const FObjectInitializer& ObjectInitializer);
 	
-
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
+	UClass *buildingBarracks;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
-		UClass *buildingBarracks;
+	UClass *buildingRanger;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
-		UClass *buildingRanger;
+	UClass *buildingTower;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
-		UClass *buildingTower;
+	UClass *buildingCitadel;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
-		UClass *buildingCitadel;
+	UClass *buildingGate;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
-		UClass *buildingGate;
+	UClass *buildingKeep;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
-		UClass *buildingKeep;
+	UClass *buildingStoneMine;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
-		UClass *buildingStoneMine;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Buildings")
-		UClass *buildingGoldMine;
-
+	UClass *buildingGoldMine;
 };

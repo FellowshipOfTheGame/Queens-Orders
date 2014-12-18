@@ -1,29 +1,26 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "WarGame.h"
-#include "RTS_Controller.h"
+#include "QueenController.h"
 
-void ARTS_Controller::BeginPlay()
+void AQueenController::BeginPlay()
 {
 	Super::BeginPlay();
 
 	bShowMouseCursor = true;
 	bEnableClickEvents = true;
 	bEnableMouseOverEvents = true;
-
 }
 
-void ARTS_Controller::setCurrentSelectedSlot(ABuildingSlot *slot)
+void AQueenController::setSelectedBuildSlot(ABuildingSlot *slot)
 {
 	if (currentBuildingSlot == slot)
 		return;
-
 
 	// Hide options for that object
 	if (currentBuildingSlot){
 		currentBuildingSlot->HideOptions();
 	}
-
 
 	currentBuildingSlot = slot;
 
@@ -31,11 +28,9 @@ void ARTS_Controller::setCurrentSelectedSlot(ABuildingSlot *slot)
 	if (currentBuildingSlot){
 		currentBuildingSlot->ShowOptions();
 	}
-	
 }
 
-
-ABuildingSlot* ARTS_Controller::getCurrentSelectedSlot() const
+ABuildingSlot* AQueenController::getSelectedBuildSlot() const
 {
 	return currentBuildingSlot;
 }

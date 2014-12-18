@@ -13,17 +13,14 @@
 UENUM(BlueprintType)
 enum class EBuildingTypes : uint8
 {
-	BT_Ranger UMETA(DisplayName = "Ranger"),
-	BT_Barracks UMETA(DisplayName = "Barracks"),
-	BT_Citadel UMETA(DisplayName = "Citadel"),
-	BT_Tower UMETA(DisplayName = "Tower"),
-	BT_Gate UMETA(DisplayName = "Gate"),
-	BT_Keep UMETA(DisplayName = "Keep"),
-	BT_StoneMine UMETA(DisplayName = "Stone Mine"),
-	BT_GoldMine UMETA(DisplayName = "Gold Mine"),
-
-	// total
-	BT_Max UMETA(Hidden)
+	Ranger,
+	Barracks,
+	Citadel,
+	Tower,
+	Gate,
+	Keep,
+	StoneMine,
+	GoldMine
 };
 
 /**
@@ -40,28 +37,28 @@ public:
 	
 	/* Workers repair or build the building - Returns true if this call finished the building "Last Hit" */
 	UFUNCTION(BlueprintCallable, Category = "Building")
-		bool addHealth(float hp);
+	bool addHealth(float hp);
 
 
 	/* Widget used as user interface for this building. */
 	UPROPERTY(BlueprintReadWrite, Category = "UI")
-		UWidgetComponent *widget;
+	UWidgetComponent *widget;
 
 	/* Building type */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Building")
-		EBuildingTypes buildingType;
+	EBuildingTypes buildingType;
 
 	/* Building max HP */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Building Stats")
-		float maxHP;
+	float maxHP;
 
 	/* Building current HP */
 	UPROPERTY(BlueprintReadOnly, Category = "Building Stats")
-		float currentHP;
+	float currentHP;
 
 	/* If the building is already built and may be used to train troops, etc. */
 	UPROPERTY(BlueprintReadOnly, Category = "Building Stats")
-		bool built;
+	bool built;
 
 
 	void ShowOptions();

@@ -4,8 +4,8 @@
 
 #include "BuildingSlot.h"
 
-#include "RTS_GameMode.h"
-#include "RTS_Camera.h"
+#include "MatchGameModeBase.h"
+#include "QueenCamera.h"
 
 ABuildingSlot::ABuildingSlot(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -41,7 +41,7 @@ void ABuildingSlot::Tick(float DeltaSeconds)
 		if (!controller)
 			return;
 
-		ARTS_Camera *rtsCamera = Cast<ARTS_Camera>(controller->GetPawn());
+		AQueenCamera *rtsCamera = Cast<AQueenCamera>(controller->GetPawn());
 		if (!rtsCamera)
 			return;
 
@@ -66,7 +66,7 @@ bool ABuildingSlot::OnBuildOnSlot(EBuildingTypes type)
 		return false;
 	}
 
-	ARTS_GameMode* gm = Cast<ARTS_GameMode>(GetWorld()->GetAuthGameMode());
+	AMatchGameModeBase* gm = Cast<AMatchGameModeBase>(GetWorld()->GetAuthGameMode());
 
 	// GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("GM: %p"), gm));
 
@@ -76,31 +76,31 @@ bool ABuildingSlot::OnBuildOnSlot(EBuildingTypes type)
 	// Create the building object
 	switch (type){
 
-		case EBuildingTypes::BT_Ranger:
+		case EBuildingTypes::Ranger:
 			building = GetWorld()->SpawnActor<ABuilding>(gm->buildingRanger);
 			break;
 
-		case EBuildingTypes::BT_Barracks: 
+		case EBuildingTypes::Barracks: 
 			building = GetWorld()->SpawnActor<ABuilding>(gm->buildingBarracks);
 			break;
 
-		case EBuildingTypes::BT_Tower:
+		case EBuildingTypes::Tower:
 			building = GetWorld()->SpawnActor<ABuilding>(gm->buildingTower);
 			break;
 
-		case EBuildingTypes::BT_Gate:
+		case EBuildingTypes::Gate:
 			building = GetWorld()->SpawnActor<ABuilding>(gm->buildingGate);
 			break;
 
-		case EBuildingTypes::BT_Keep:
+		case EBuildingTypes::Keep:
 			building = GetWorld()->SpawnActor<ABuilding>(gm->buildingKeep);
 			break;
 
-		case EBuildingTypes::BT_GoldMine:
+		case EBuildingTypes::GoldMine:
 			building = GetWorld()->SpawnActor<ABuilding>(gm->buildingGoldMine);
 			break;
 
-		case EBuildingTypes::BT_StoneMine:
+		case EBuildingTypes::StoneMine:
 			building = GetWorld()->SpawnActor<ABuilding>(gm->buildingStoneMine);
 			break;
 
@@ -109,8 +109,8 @@ bool ABuildingSlot::OnBuildOnSlot(EBuildingTypes type)
 
 	}
 
-	building->SetActorLocation(GetActorLocation());
 	HideOptions();
+	building->SetActorLocation(GetActorLocation());
 
 	return true;
 }
