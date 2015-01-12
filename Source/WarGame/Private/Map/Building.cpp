@@ -14,7 +14,7 @@ ABuilding::ABuilding(const FObjectInitializer& ObjectInitializer)
 }
 
 
-bool ABuilding::addHealth(float hp)
+bool ABuilding::AddHealth(float hp)
 {
 	currentHP += hp;
 
@@ -30,15 +30,4 @@ bool ABuilding::addHealth(float hp)
 	}
 
 	return false;
-}
-
-
-void ABuilding::ShowOptions()
-{
-
-}
-
-void ABuilding::HideOptions()
-{
-
 }

@@ -23,27 +23,13 @@ class WARGAME_API ABuildingSlot : public AActor
 public:
 	ABuildingSlot(const FObjectInitializer& ObjectInitializer);
 
-	virtual void Tick(float DeltaSeconds) override;
-
 	/* FUNCTIONS */
-
-	/* Init stuff */
-	UFUNCTION(BlueprintCallable, Category = "Init")
-	void init(UWidgetComponent *gui);
 
 	/* Build a new building on this slot. Returns true on success. */
 	UFUNCTION(BlueprintCallable, Category = "Building")
 	bool OnBuildOnSlot(EBuildingTypes type);
 
-	void ShowOptions();
-	void HideOptions();
-
-
 	/* VARIABLES */
-
-	/* Widget used as user interface for this slot. */
-	UPROPERTY(BlueprintReadWrite, Category = "UI")
-	UWidgetComponent *widget;
 
 	/* Building types accepted by this slot */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Building")

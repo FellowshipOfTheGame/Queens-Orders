@@ -32,17 +32,11 @@ class WARGAME_API ABuilding : public AActor
 	GENERATED_BODY()
 
 public:
-
 	ABuilding(const FObjectInitializer& ObjectInitializer);
 	
 	/* Workers repair or build the building - Returns true if this call finished the building "Last Hit" */
 	UFUNCTION(BlueprintCallable, Category = "Building")
-	bool addHealth(float hp);
-
-
-	/* Widget used as user interface for this building. */
-	UPROPERTY(BlueprintReadWrite, Category = "UI")
-	UWidgetComponent *widget;
+	bool AddHealth(float hp);
 
 	/* Building type */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Building")
@@ -59,9 +53,5 @@ public:
 	/* If the building is already built and may be used to train troops, etc. */
 	UPROPERTY(BlueprintReadOnly, Category = "Building Stats")
 	bool built;
-
-
-	void ShowOptions();
-	void HideOptions();
 	
 };

@@ -27,9 +27,18 @@ public:
 
 	// Actor interface
 	virtual void BeginPlay() override;
-	
+
+	/* Should create an instance of the FloatingUI used for the building slot. */
+	UFUNCTION(BlueprintImplementableEvent)
+	AActor* OpenUIForBuildingSlot(ABuildingSlot *slot);
+
+	/* Should create an instance of the FloatingUI used for the building. */
+	UFUNCTION(BlueprintImplementableEvent)
+	AActor* OpenUIForBuilding(ABuilding *slot);
 
 private:
 	ABuildingSlot *currentBuildingSlot;
+
+	AActor *currentUI;
 
 };

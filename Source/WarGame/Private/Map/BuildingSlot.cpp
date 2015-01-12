@@ -18,56 +18,31 @@ ABuildingSlot::ABuildingSlot(const FObjectInitializer& ObjectInitializer)
 
 }
 
-void ABuildingSlot::init(UWidgetComponent *gui)
-{
-	widget = gui;
-
-	// Makes no difference? Works on Tick().
-	widget->SetRelativeLocation(FVector(0, 0, 1800));
-
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("GUI: %p"), widget));
-
-	HideOptions();
-}
-
-
-void ABuildingSlot::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-
-	if (widget && widget->IsVisible()){
-
-		APlayerController *controller = GetWorld()->GetFirstPlayerController();
-		if (!controller)
-			return;
-
-		AQueenCamera *rtsCamera = Cast<AQueenCamera>(controller->GetPawn());
-		if (!rtsCamera)
-			return;
-
-		// Resize
-		float dist = FVector::Dist(rtsCamera->camera->GetComponentLocation(), GetActorLocation()) / 1100.0;
-		widget->SetWorldScale3D( FVector(dist, dist, dist) );
-		// GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Scale: %f"), dist));
-
-		// Look direction
-		widget->SetRelativeRotation( FRotator(0, 90, 0) );
-
-		// This should be on Init() call
-		widget->SetRelativeLocation(FVector(0, 0, 1800));
-	}
-}
-
 bool ABuildingSlot::OnBuildOnSlot(EBuildingTypes type)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("OnBuildOnSlot: %d"), (int)type));
 
+	// Already has a building?
 	if (building){
 		return false;
 	}
 
-	AMatchGameModeBase* gm = Cast<AMatchGameModeBase>(GetWorld()->GetAuthGameMode());
+	// Verify if this slot accepts the building type
+	bool hasType = false;
+	for (EBuildingTypes t : buildingTypes)
+	{
+		if (t == type)
+		{
+			hasType = true;
+			break;
+		}
+	}
 
+	if (!hasType)
+		return false;
+
+	// Spawn the correct building object	
+	AMatchGameModeBase* gm = Cast<AMatchGameModeBase>(GetWorld()->GetAuthGameMode());
 	// GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("GM: %p"), gm));
 
 	if (!gm)
@@ -109,38 +84,7 @@ bool ABuildingSlot::OnBuildOnSlot(EBuildingTypes type)
 
 	}
 
-	HideOptions();
 	building->SetActorLocation(GetActorLocation());
 
 	return true;
-}
-
-void ABuildingSlot::ShowOptions()
-{
-	if (building){
-		building->ShowOptions();
-	}
-	else if (widget)
-	{
-		widget->SetHiddenInGame(false);
-		widget->SetVisibility(true);
-		widget->Activate();
-	}
-
-	// GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("SHOW: %p"), widget));
-}
-
-void ABuildingSlot::HideOptions()
-{
-	if (building){
-		building->HideOptions();
-	}
-	
-	if (widget){
-		widget->SetHiddenInGame(true);
-		widget->SetVisibility(false);
-		widget->Deactivate();
-	}
-
-	// GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("HIDE: %p"), widget));
 }
