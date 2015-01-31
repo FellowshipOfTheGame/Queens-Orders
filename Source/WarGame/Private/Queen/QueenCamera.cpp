@@ -23,21 +23,52 @@ AQueenCamera::AQueenCamera(const FObjectInitializer& ObjectInitializer)
 
 void AQueenCamera::Tick(float DeltaSeconds)
 {
-	FVector Vector = camera->GetComponentLocation();
-	float MoveSpeed = 30000.0f + Vector.X;
-
 	// Find movement direction
-	const float ForwardValue = GetInputAxisValue(MoveForwardBinding);
-	const float RightValue = GetInputAxisValue(MoveRightBinding);
+	const float vertical = GetInputAxisValue(MoveForwardBinding);
+	const float horizontal = GetInputAxisValue(MoveRightBinding);
 
 	// Clamp max size so that (X=1, Y=1) doesn't cause faster movement in diagonal directions
-	const FVector MoveDirection = FVector(ForwardValue, RightValue, 0.f).ClampMaxSize(1.0f);
+	const FVector MoveDirection = FVector(vertical, horizontal, 0.f).ClampMaxSize(1.0f);
 
 	// Calculate  movement
 	const FVector Movement = MoveDirection * MoveSpeed * DeltaSeconds;
 
-	//camera->SetWorldLocation(camera->GetComponentLocation() + Movement);
+	camera->SetWorldLocation(camera->GetComponentLocation() + Movement);
 
 	// GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Direction: %f %f"), Movement.X, Movement.Y )	);
 
+}
+
+void AQueenCamera::SetupPlayerInputComponent(UInputComponent* InputComponent)
+{
+	// set up gameplay key bindings
+	InputComponent->BindAxis("CameraVertical", this, &AQueenCamera::MoveVertical);
+	InputComponent->BindAxis("CameraHorizontal", this, &AQueenCamera::MoveHorizontal);
+}
+
+void AQueenCamera::MoveHorizontal(float Value)
+{
+	if ((Controller != NULL) && (Value != 0.0f))
+	{
+		// find out which way is right
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+		// add movement in that direction
+		AddMovementInput(Direction, Value);
+	}
+}
+
+void AQueenCamera::MoveVertical(float Value)
+{
+	if ((Controller != NULL) && (Value != 0.0f))
+	{
+		// find out which way is forward
+		FRotator Rotation = GetController()->GetControlRotation();
+
+		Rotation.Pitch = 0.0f;
+
+		// add movement in that direction
+		const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+		AddMovementInput(Direction, Value);
+	}
 }

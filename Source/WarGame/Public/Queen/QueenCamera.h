@@ -12,6 +12,7 @@ UCLASS()
 class WARGAME_API AQueenCamera : public APawn
 {
 	GENERATED_BODY()
+
 	
 public:
 	AQueenCamera(const FObjectInitializer& ObjectInitializer);
@@ -24,6 +25,17 @@ public:
 	UPROPERTY(Category = Camera, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent *camera;
 
+	UPROPERTY(Category = Camera, EditAnywhere, meta = (AllowPrivateAccess = "true"))
+	float MoveSpeed;
+
+
+	void MoveHorizontal(float Value);
+	void MoveVertical(float Value);
+
+protected:
+	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+
+private:
 	// Static names for axis bindings
 	static const FName MoveForwardBinding;
 	static const FName MoveRightBinding;
