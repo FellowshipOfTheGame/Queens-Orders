@@ -3,7 +3,7 @@
 public class HeroCamera : MonoBehaviour {
 	public Transform TargetLookAt;
 	
-	public float Distance = 5.0f;
+	private float distance = 5.0f;
 	public float DistanceMin = 3.0f;
 	public float DistanceMax = 10.0f;
 	
@@ -24,14 +24,12 @@ public class HeroCamera : MonoBehaviour {
 	
 	public float X_Smooth = 0.05f;
 	public float Y_Smooth = 0.1f;
-	private float velX = 0.0f;
-	private float velY = 0.0f;
-	private float velZ = 0.0f;
+	private Vector3 velocity = Vector3.zero;
 	
 	void Start()
 	{
-		Distance = Mathf.Clamp(Distance, DistanceMin, DistanceMax);
-		startingDistance = Distance;
+		distance = Mathf.Clamp(distance, DistanceMin, DistanceMax);
+		startingDistance = distance;
 		Reset();
 	}
 	
@@ -50,7 +48,7 @@ public class HeroCamera : MonoBehaviour {
 	void HandlePlayerInput()
 	{
 		var deadZone = 0.01; // mousewheel deadZone
-
+		
 		mouseX += Input.GetAxis("Mouse X") * X_MouseSensitivity;
 		mouseY -= Input.GetAxis("Mouse Y") * Y_MouseSensitivity;
 		
@@ -61,7 +59,7 @@ public class HeroCamera : MonoBehaviour {
 		float wheel = Input.GetAxis ("Mouse ScrollWheel");
 		if (wheel < -deadZone || wheel > deadZone)
 		{
-			desiredDistance = Mathf.Clamp(Distance - (wheel * MouseWheelSensitivity), 
+			desiredDistance = Mathf.Clamp(distance - (wheel * MouseWheelSensitivity), 
 			                              DistanceMin, DistanceMax);
 		}
 	}
@@ -69,25 +67,22 @@ public class HeroCamera : MonoBehaviour {
 	void CalculateDesiredPosition()
 	{
 		// Evaluate distance
-		Distance = Mathf.SmoothDamp(Distance, desiredDistance, ref velocityDistance, DistanceSmooth);
+		distance = Mathf.SmoothDamp(distance, desiredDistance, ref velocityDistance, DistanceSmooth);
 		
-		// Calculate desired position -> Note : mouse inputs reversed to align to WorldSpace Axis
-		desiredPosition = CalculatePosition(mouseY, mouseX, Distance);
+		
+		desiredPosition = CalculatePosition(mouseY, mouseX, distance);
 	}
 	
-	Vector3 CalculatePosition(float rotationX, float rotationY, float distance)
+	Vector3 CalculatePosition(float rotationX, float rotationY, float dist)
 	{
-		Vector3 direction = new Vector3(0, 0, -distance);
+		Vector3 direction = new Vector3(0, 0, -dist);
 		Quaternion rotation = Quaternion.Euler(rotationX, rotationY, 0);
 		return TargetLookAt.position + (rotation * direction);
 	}
 	
 	void UpdatePosition()
 	{
-		float posX = Mathf.SmoothDamp(this.transform.position.x, desiredPosition.x, ref velX, X_Smooth);
-		float posY = Mathf.SmoothDamp(this.transform.position.y, desiredPosition.y, ref velY, Y_Smooth);
-		float posZ = Mathf.SmoothDamp(this.transform.position.z, desiredPosition.z, ref velZ, X_Smooth);
-		transform.position = new Vector3(posX, posY, posZ);
+		transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, 0.25f);
 		
 		transform.LookAt(TargetLookAt);
 	}
@@ -96,8 +91,8 @@ public class HeroCamera : MonoBehaviour {
 	{
 		mouseX = 0;
 		mouseY = 10;
-		Distance = startingDistance;
-		desiredDistance = Distance;
+		distance = startingDistance;
+		desiredDistance = distance;
 	}
 	
 	float ClampAngle(float angle, float min, float max)
