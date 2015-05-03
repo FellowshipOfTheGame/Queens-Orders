@@ -2,94 +2,119 @@
 
 public class PlayerMovement : MonoBehaviour
 {
+	enum MoveMode{FREE, BATTLE, RUN};
+
 	// Camera
 	public Transform myCamera;				// Used for 3rd person movement
 
 	// Curves
 	public AnimationCurve angleAccelFactor;	// Lower speed on high hills
 
-	// Movement
-	public float baseAccel = 20.0f;
-	public float normalSpeed = 5.0f;
-	public float runSpeed = 9.0f;
-	public float jumpAccel = 80.0f;
-	public float jumpDodge = 50.0f;
+	// Movement 
+	public float accelFree = 20.0f;
+	public float accelRun = 35.0f;
+	public float jumpFree = 8.0f;
+	public float jumpBattle = 15.0f;
+
 	public float gravity = 9.81f;
-	public float frictionGroundMoving = 1.1f;
-	public float frictionGroundNMoving = 3.0f;
+	public float frictionGroundMoving = 5.0f;
+	public float frictionGroundNMoving = 10.0f;
 	public float frictionAir = 0.01f;
 
 	private Vector3 acceleration = Vector3.zero;
 	private Vector3 velocity = Vector3.zero;
 
 	// Private members
-	private float currentMaxSpeed;
+	private float currentAccel;
 	private CharacterController controller;
 	private CapsuleCollider body;
 
-	private int movementMode; // 0 = normal, 1 = running, 2 = fight
+	private MoveMode movementMode;
 	private const float h = 0.01666666f;
 
-	void Start ()
+	private Vector3 inputDirection;
+
+	public void Start ()
 	{
-		movementMode = 0;
+		movementMode = MoveMode.FREE;
 		controller = GetComponent<CharacterController> ();
 		body = GetComponent<CapsuleCollider> ();
 
-		currentMaxSpeed = normalSpeed;
+		currentAccel = accelFree;
 	}
 
-	Vector3 FindGroundNormal()
+	private Vector3 FindGroundNormal()
 	{
 		RaycastHit hit;
-		if (Physics.Raycast (transform.position, -Vector3.up, out hit, body.height + 0.1f)) {
-			return hit.normal;
+		if (Physics.Raycast (transform.position, -Vector3.up, out hit, body.height + 5.0f)) {
+			return hit.normal.normalized;
 		}
-		return Vector3.up;
+
+		return Vector3.up*0.01f; // weak normal
 	}
 
-	void UpdateModeNormal()
+	protected void Jump(Vector3 groundNormal)
+	{
+		if (!controller.isGrounded)
+			return;
+
+		if ( movementMode ==  MoveMode.FREE){ // FREE
+			velocity = groundNormal*jumpFree;
+			acceleration.y = 0;
+		} else if (movementMode == MoveMode.RUN ) { // BATTLE
+			if (inputDirection.magnitude <= 0)
+				return;
+			velocity.y = 0;
+			Vector3 w = inputDirection + groundNormal;
+			w.Normalize();
+			w.x *= w.y;
+			w.z *= w.y;
+			w.y *= 0.5f;
+			velocity = w.normalized * jumpBattle;
+			acceleration = Vector3.zero;
+		}
+	}
+
+	private void UpdateModeNormal()
 	{
 		Vector3 friction = Vector3.zero;
-		
-		Vector3 movementDirection = HandleInput();
+
+		HandleInput();
 		Vector3 groundNormal = FindGroundNormal();
 		
 		if (controller.isGrounded)
 		{
-			if (movementDirection.magnitude > 0)
+			if (inputDirection.magnitude > 0)
 			{
 				friction = velocity*frictionGroundMoving;
 				friction.y = 0;
+			} else if (velocity.magnitude < 1){
+				velocity = Vector3.zero;
 			} else {
-				if (velocity.magnitude < 1){
-					velocity = Vector3.zero;
-				}else{
-					friction = velocity*frictionGroundNMoving;
-					friction.y = 0;
-				}
+				friction = velocity*frictionGroundNMoving;
+				friction.y = 0;
 			}
 			
 			// Use ground direction
-			Vector3 mm = Vector3.ProjectOnPlane(movementDirection, groundNormal);
-			float angle = Vector3.Angle(mm, movementDirection);
-			
+			Vector3 mm = Vector3.ProjectOnPlane(inputDirection, groundNormal);
+			float angle = Vector3.Angle(mm, inputDirection);
 			
 			// Going up slopes makes you go slower
 			if (mm.y >= 0) {
-				acceleration = mm * angleAccelFactor.Evaluate(angle) * baseAccel;
+				acceleration = mm * angleAccelFactor.Evaluate(angle) * currentAccel;
 			} else {
-				acceleration = mm * baseAccel;
+				acceleration = mm * currentAccel;
 			}
 			acceleration.y -= gravity;
 			
-			// Jump
-			if (Input.GetButton ("Jump"))
+
+			velocity.y = -gravity;
+			// Colocar isso dentro de HandleInput?
+			if (Input.GetButton("Jump"))
 			{
-				velocity.y = 0;
-				acceleration = groundNormal * jumpAccel;
+				Jump(groundNormal);
 			}
-			
+
 		} else {
 			acceleration.y -= gravity;
 			friction = velocity*frictionAir;
@@ -101,15 +126,20 @@ public class PlayerMovement : MonoBehaviour
 		Debug.DrawLine (transform.position, transform.position + velocity, Color.green);
 
 		// Apply friction
-		Vector3 newvel = velocity + (acceleration-friction) * h;
-		if (controller.isGrounded && newvel.magnitude > currentMaxSpeed) {
-			velocity = newvel.normalized * currentMaxSpeed;
-		} else {
-			velocity = newvel;
-		}
-		
-		print (controller.isGrounded+ "- Accel: " + acceleration.magnitude + " Velocity: " + velocity + " Friction: "+ friction.magnitude);
-		// velocity = new Vector3(0,0,5);
+		velocity = velocity + (acceleration-friction) * h;
+//		Vector3 newvelXZ = new Vector3(newvel.x, 0, newvel.z);
+//		Vector3 newvelXZbefore = new Vector3(velocity.x, 0, velocity.z);
+//		if (controller.isGrounded && newvelXZ.magnitude > currentMaxSpeed && newvelXZbefore.magnitude < newvelXZ.magnitude){
+//			velocity.x = velocity.x; // Do not sum if change exceeds max speed
+//			velocity.z = velocity.z;
+//		} else {
+//			velocity.x = newvel.x;
+//			velocity.z = newvel.z;
+//		}
+//		velocity.y = newvel.y;
+
+		Vector3 velocityXZ = new Vector3(velocity.x, 0, velocity.z);
+		print (controller.isGrounded+" Normal: "+groundNormal + " - Accel: " + acceleration.magnitude + " VelocityXZ: " + velocityXZ + velocityXZ.magnitude + " velocityY: "+ velocity.y + " Friction: "+ friction.magnitude);
 		
 		// Move
 		controller.Move(velocity * h);
@@ -118,174 +148,20 @@ public class PlayerMovement : MonoBehaviour
 		this.transform.LookAt(this.transform.position + new Vector3 (velocity.x, 0.0f, velocity.z));
 	}
 
-	void UpdateModeRunning()
+	public void Update()
 	{
-		// TODO: VERIFICAR O QUE MUDA PARA MODO DE CORRIDA 
-
-		Vector3 friction = Vector3.zero;
-		
-		Vector3 movementDirection = HandleInput();
-		Vector3 groundNormal = FindGroundNormal();
-		
-		if (controller.isGrounded)
-		{
-			if (movementDirection.magnitude > 0)
-			{
-				friction = velocity*frictionGroundMoving;
-				friction.y = 0;
-			} else {
-				if (velocity.magnitude < 1){
-					velocity = Vector3.zero;
-				}else{
-					friction = velocity*frictionGroundNMoving;
-					friction.y = 0;
-				}
-			}
-			
-			// Use ground direction
-			Vector3 mm = Vector3.ProjectOnPlane(movementDirection, groundNormal);
-			float angle = Vector3.Angle(mm, movementDirection);
-			
-			
-			// Going up slopes makes you go slower
-			if (mm.y >= 0) {
-				acceleration = mm * angleAccelFactor.Evaluate(angle) * baseAccel;
-			} else {
-				acceleration = mm * baseAccel;
-			}
-			acceleration.y -= gravity;
-			
-			// Jump
-			if (Input.GetButton ("Jump"))
-			{
-				velocity.y = 0;
-				Vector3 w = velocity.normalized + groundNormal;
-				w.y = 1;
-				acceleration = w * jumpDodge;
-			}
-			
-		} else {
-			acceleration.y -= gravity;
-			friction = velocity*frictionAir;
-			friction.y = 0;
-		}
-		
-		Debug.DrawLine (transform.position, transform.position - friction, Color.red);
-		Debug.DrawLine (transform.position, transform.position + acceleration, Color.blue);
-		Debug.DrawLine (transform.position, transform.position + velocity, Color.green);
-		print ("Accel: " + acceleration.magnitude + " Velocity: " + velocity.magnitude + " Friction: "+ friction.magnitude);
-		
-		// Apply friction
-		Vector3 newvel = velocity + (acceleration-friction) * h;
-		if (controller.isGrounded && newvel.magnitude > currentMaxSpeed) {
-			velocity = newvel.normalized * currentMaxSpeed;
-		} else {
-			velocity = newvel;
-		}
-		
-		// Move
-		controller.Move(velocity * h);
-
-		// Rotate - Character will be looking foward in the direction the camera is facing.
-		Vector3 v = myCamera.transform.forward;
-		v.y = 0;
-		this.transform.LookAt(this.transform.position + v);
-	}
-	
-	void UpdateModeFight()
-	{
-		// TODO: VERIFICAR O QUE MUDA PARA MODO DE BATALHA 
-
-		Vector3 friction = Vector3.zero;
-		
-		Vector3 movementDirection = HandleInput();
-		Vector3 groundNormal = FindGroundNormal();
-		
-		if (controller.isGrounded)
-		{
-			if (movementDirection.magnitude > 0)
-			{
-				friction = velocity*frictionGroundMoving;
-				friction.y = 0;
-			} else {
-				if (velocity.magnitude < 1){
-					velocity = Vector3.zero;
-				}else{
-					friction = velocity*frictionGroundNMoving;
-					friction.y = 0;
-				}
-			}
-			
-			// Use ground direction
-			Vector3 mm = Vector3.ProjectOnPlane(movementDirection, groundNormal);
-			float angle = Vector3.Angle(mm, movementDirection);
-			
-			
-			// Going up slopes makes you go slower
-			if (mm.y >= 0) {
-				acceleration = mm * angleAccelFactor.Evaluate(angle) * baseAccel;
-			} else {
-				acceleration = mm * baseAccel;
-			}
-			acceleration.y -= gravity;
-			
-			// Jump
-			if (Input.GetButton ("Jump"))
-			{
-				velocity.y = 0;
-				Vector3 w = velocity.normalized + groundNormal;
-				w.y = 1;
-				acceleration = w * jumpDodge;
-			}
-			
-		} else {
-			acceleration.y -= gravity;
-			friction = velocity*frictionAir;
-			friction.y = 0;
-		}
-		
-		Debug.DrawLine (transform.position, transform.position - friction, Color.red);
-		Debug.DrawLine (transform.position, transform.position + acceleration, Color.blue);
-		Debug.DrawLine (transform.position, transform.position + velocity, Color.green);
-		print ("Accel: " + acceleration.magnitude + " Velocity: " + velocity.magnitude + " Friction: "+ friction.magnitude);
-		
-		// Apply friction
-		Vector3 newvel = velocity + (acceleration-friction) * h;
-		if (controller.isGrounded && newvel.magnitude > currentMaxSpeed) {
-			velocity = newvel.normalized * currentMaxSpeed;
-		} else {
-			velocity = newvel;
-		}
-		
-		// Move
-		controller.Move(velocity * h);
-
-		// Rotate - Character will be looking foward in the direction the camera is facing.
-		Vector3 v = myCamera.transform.forward;
-		v.y = 0;
-		this.transform.LookAt(this.transform.position + v);
+		UpdateModeNormal();
 	}
 
-	void Update()
-	{
-		if (movementMode == 0) {
-			UpdateModeNormal();
-		} else if (movementMode == 1){
-			UpdateModeRunning();
-		} else {
-			UpdateModeFight();
-		}
-	}
-
-	Vector3 HandleInput ()
+	private void HandleInput ()
 	{
 		// print ("Vertical: "+Input.GetAxis("Vertical"));
 		if (Input.GetAxis ("Run") > 0){
-			currentMaxSpeed = runSpeed;
-			movementMode = 1;
+			currentAccel = accelRun;
+			movementMode = MoveMode.RUN;
 		}else{
-			currentMaxSpeed = normalSpeed;
-			movementMode = 0;
+			currentAccel = accelFree;
+			movementMode = MoveMode.FREE;
 		}
 
 		// Movement direction
@@ -295,7 +171,7 @@ public class PlayerMovement : MonoBehaviour
 		Vector3 move = moveX + moveY;
 		move.y = 0;
 		moveX.Normalize ();
-		return move.normalized;
+		inputDirection = move.normalized;
 	}
 
 }
