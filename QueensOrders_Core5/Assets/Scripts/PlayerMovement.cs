@@ -120,10 +120,11 @@ public class PlayerMovement : MonoBehaviour
 			friction = velocity*frictionAir;
 			friction.y = 0;
 		}
-		
-		Debug.DrawLine (transform.position, transform.position - friction, Color.red);
-		Debug.DrawLine (transform.position, transform.position + acceleration, Color.blue);
-		Debug.DrawLine (transform.position, transform.position + velocity, Color.green);
+
+		Vector3 DO = transform.position+new Vector3(0, 1.5f, 0); // debug offset
+		Debug.DrawLine (DO, DO - friction, Color.red);
+		Debug.DrawLine (DO, DO + acceleration, Color.blue);
+		Debug.DrawLine (DO, DO + velocity, Color.green);
 
 		// Apply friction
 		velocity = velocity + (acceleration-friction) * h;
@@ -138,8 +139,8 @@ public class PlayerMovement : MonoBehaviour
 //		}
 //		velocity.y = newvel.y;
 
-		Vector3 velocityXZ = new Vector3(velocity.x, 0, velocity.z);
-		print (controller.isGrounded+" Normal: "+groundNormal + " - Accel: " + acceleration.magnitude + " VelocityXZ: " + velocityXZ + velocityXZ.magnitude + " velocityY: "+ velocity.y + " Friction: "+ friction.magnitude);
+		//Vector3 velocityXZ = new Vector3(velocity.x, 0, velocity.z);
+		//print (controller.isGrounded+" Normal: "+groundNormal + " - Accel: " + acceleration.magnitude + " VelocityXZ: " + velocityXZ + velocityXZ.magnitude + " velocityY: "+ velocity.y + " Friction: "+ friction.magnitude);
 		
 		// Move
 		controller.Move(velocity * h);

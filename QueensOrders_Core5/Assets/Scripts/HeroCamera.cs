@@ -2,10 +2,12 @@
 
 public class HeroCamera : MonoBehaviour {
 	public Transform TargetLookAt;
+
+	private Vector3 currentLookAt;
 	
-	private float distance = 5.0f;
-	public float DistanceMin = 3.0f;
-	public float DistanceMax = 10.0f;
+	private float distance = 1.2f;
+	public float DistanceMin = 1.2f;
+	public float DistanceMax = 4.0f;
 	
 	private float mouseX = 0.0f;
 	private float mouseY = 0.0f;
@@ -25,12 +27,15 @@ public class HeroCamera : MonoBehaviour {
 	public float X_Smooth = 0.05f;
 	public float Y_Smooth = 0.1f;
 	private Vector3 velocity = Vector3.zero;
+	private Vector3 velocityLookAt = Vector3.zero;
 	
 	void Start()
 	{
 		distance = Mathf.Clamp(distance, DistanceMin, DistanceMax);
 		startingDistance = distance;
 		Reset();
+
+		Cursor.lockState = CursorLockMode.Locked;
 	}
 	
 	void LateUpdate()
@@ -48,6 +53,16 @@ public class HeroCamera : MonoBehaviour {
 	void HandlePlayerInput()
 	{
 		var deadZone = 0.01; // mousewheel deadZone
+
+		if (Input.GetKeyDown("escape"))
+		{
+			if (Cursor.lockState == CursorLockMode.Locked){
+				Cursor.lockState = CursorLockMode.None;
+			}else{
+				Cursor.lockState = CursorLockMode.Locked;
+			}
+			// Cursor.visible = (CursorLockMode.Locked == Cursor.lockState);
+		}
 		
 		mouseX += Input.GetAxis("Mouse X") * X_MouseSensitivity;
 		mouseY -= Input.GetAxis("Mouse Y") * Y_MouseSensitivity;
@@ -77,14 +92,17 @@ public class HeroCamera : MonoBehaviour {
 	{
 		Vector3 direction = new Vector3(0, 0, -dist);
 		Quaternion rotation = Quaternion.Euler(rotationX, rotationY, 0);
-		return TargetLookAt.position + (rotation * direction);
+
+		currentLookAt = Vector3.SmoothDamp(currentLookAt, TargetLookAt.position, ref velocityLookAt, 0.3f);
+
+		return currentLookAt + (rotation * direction);
 	}
 	
 	void UpdatePosition()
 	{
-		transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, 0.25f);
+		transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, 0.2f);
 		
-		transform.LookAt(TargetLookAt);
+		transform.LookAt(currentLookAt);
 	}
 	
 	void Reset()
@@ -93,6 +111,7 @@ public class HeroCamera : MonoBehaviour {
 		mouseY = 10;
 		distance = startingDistance;
 		desiredDistance = distance;
+		currentLookAt = TargetLookAt.position;
 	}
 	
 	float ClampAngle(float angle, float min, float max)
