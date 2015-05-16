@@ -2,7 +2,7 @@
 
 public class PlayerMovement : MonoBehaviour
 {
-	enum MoveMode{FREE, BATTLE, RUN};
+	public enum MovementMode{FREE, BATTLE, RUN};
 
 	// Camera
 	public Transform myCamera;				// Used for 3rd person movement
@@ -29,18 +29,27 @@ public class PlayerMovement : MonoBehaviour
 	private CharacterController controller;
 	private CapsuleCollider body;
 
-	private MoveMode movementMode;
+	private MovementMode movementMode;
 	private const float h = 0.01666666f;
-
+	
 	private Vector3 inputDirection;
+
+	private bool isDirectionLocked = false;
+	private Vector3 lockedDirection = Vector3.zero;
+
+
 
 	public void Start ()
 	{
-		movementMode = MoveMode.FREE;
+		movementMode = MovementMode.FREE;
 		controller = GetComponent<CharacterController> ();
 		body = GetComponent<CapsuleCollider> ();
 
 		currentAccel = accelFree;
+	}
+
+	public MovementMode getMovementState(){
+		return movementMode;
 	}
 
 	private Vector3 FindGroundNormal()
@@ -58,10 +67,10 @@ public class PlayerMovement : MonoBehaviour
 		if (!controller.isGrounded)
 			return;
 
-		if ( movementMode ==  MoveMode.FREE){ // FREE
+		if ( movementMode ==  MovementMode.FREE){
 			velocity = groundNormal*jumpFree;
 			acceleration.y = 0;
-		} else if (movementMode == MoveMode.RUN ) { // BATTLE
+		} else if (movementMode == MovementMode.RUN ) {
 			if (inputDirection.magnitude <= 0)
 				return;
 			velocity.y = 0;
@@ -69,7 +78,7 @@ public class PlayerMovement : MonoBehaviour
 			w.Normalize();
 			w.x *= w.y;
 			w.z *= w.y;
-			w.y *= 0.5f;
+			w.y *= 0.3f;
 			velocity = w.normalized * jumpBattle;
 			acceleration = Vector3.zero;
 		}
@@ -122,26 +131,13 @@ public class PlayerMovement : MonoBehaviour
 		}
 
 		Vector3 DO = transform.position+new Vector3(0, 1.5f, 0); // debug offset
-		Debug.DrawLine (DO, DO - friction, Color.red);
-		Debug.DrawLine (DO, DO + acceleration, Color.blue);
-		Debug.DrawLine (DO, DO + velocity, Color.green);
+		Debug.DrawLine(DO, DO - friction, Color.red);
+		Debug.DrawLine(DO, DO + acceleration, Color.blue);
+		Debug.DrawLine(DO, DO + velocity, Color.green);
 
 		// Apply friction
 		velocity = velocity + (acceleration-friction) * h;
-//		Vector3 newvelXZ = new Vector3(newvel.x, 0, newvel.z);
-//		Vector3 newvelXZbefore = new Vector3(velocity.x, 0, velocity.z);
-//		if (controller.isGrounded && newvelXZ.magnitude > currentMaxSpeed && newvelXZbefore.magnitude < newvelXZ.magnitude){
-//			velocity.x = velocity.x; // Do not sum if change exceeds max speed
-//			velocity.z = velocity.z;
-//		} else {
-//			velocity.x = newvel.x;
-//			velocity.z = newvel.z;
-//		}
-//		velocity.y = newvel.y;
 
-		//Vector3 velocityXZ = new Vector3(velocity.x, 0, velocity.z);
-		//print (controller.isGrounded+" Normal: "+groundNormal + " - Accel: " + acceleration.magnitude + " VelocityXZ: " + velocityXZ + velocityXZ.magnitude + " velocityY: "+ velocity.y + " Friction: "+ friction.magnitude);
-		
 		// Move
 		controller.Move(velocity * h);
 		
@@ -157,22 +153,40 @@ public class PlayerMovement : MonoBehaviour
 	private void HandleInput ()
 	{
 		// print ("Vertical: "+Input.GetAxis("Vertical"));
-		if (Input.GetAxis ("Run") > 0){
+
+		float axisH = Input.GetAxis ("Horizontal");
+		float axisV = Input.GetAxis ("Vertical");
+
+		if (!isDirectionLocked) {
+
+			// Movement direction
+			Vector3 moveX = myCamera.forward * axisV;
+			Vector3 moveY = myCamera.right * axisH;
+		
+			Vector3 move = moveX + moveY;
+			move.y = 0;
+			moveX.Normalize ();
+			inputDirection = move.normalized;
+
+		} else {
+			if ( Mathf.Abs(axisH)+Mathf.Abs(axisV) < 0.1f){
+				isDirectionLocked=false;
+			}
+
+		}
+	
+
+		if (Input.GetButtonDown("Run") ){
 			currentAccel = accelRun;
-			movementMode = MoveMode.RUN;
-		}else{
+			movementMode = MovementMode.RUN;
+			isDirectionLocked = true;
+			lockedDirection = inputDirection;
+		}else if (Input.GetButtonUp("Run")){
 			currentAccel = accelFree;
-			movementMode = MoveMode.FREE;
+			movementMode = MovementMode.FREE;
+			isDirectionLocked = false;
 		}
 
-		// Movement direction
-		Vector3 moveX = myCamera.forward * Input.GetAxis ("Vertical");
-		Vector3 moveY = myCamera.right * Input.GetAxis ("Horizontal");
-
-		Vector3 move = moveX + moveY;
-		move.y = 0;
-		moveX.Normalize ();
-		inputDirection = move.normalized;
 	}
 
 }
