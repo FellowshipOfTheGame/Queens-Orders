@@ -23,7 +23,6 @@ public class PlayerMovement : MonoBehaviour
 	public float frictionGroundMoving = 5.0f;
 	public float frictionGroundNMoving = 10.0f;
 	public float frictionAir = 0.01f;
-	private float currentFriction = 0.0f;
 
 	public int cooldownJump = 15; // In Frames
 
@@ -204,17 +203,21 @@ public class PlayerMovement : MonoBehaviour
 			{
 				friction = velocity*frictionGroundMoving;
 				friction.y = 0;
-			} else if (velocity.magnitude < 0.3f){
-				velocity = Vector3.zero;
-				accelForce = Vector3.zero;
-				mm = Vector3.zero;
-			} else {
-				friction = velocity*frictionGroundNMoving;
-				friction.y = 0;
+			} else{
+				Vector3 velXZ = new Vector3(velocity.x, 0, velocity.z);
+
+				if (velXZ.magnitude < 0.3f){
+					velocity.x = velocity.z = 0;
+					accelForce = Vector3.zero;
+					mm = Vector3.zero;
+				} else {
+					friction = velocity*frictionGroundNMoving;
+					friction.y = 0;
+				}
 			}
 			
 
-			velocity.y = 0;
+			velocity.y = -gravity;
 			// Colocar isso dentro de HandleInput?
 			if ( jump && jumpCD == 0 )
 			{
@@ -235,8 +238,6 @@ public class PlayerMovement : MonoBehaviour
 
 		// Apply friction
 		velocity = velocity + (accelForce-friction)/mass * h;
-
-		print(velocity.magnitude);
 
 		// Move
 		controller.Move(velocity * h);
