@@ -87,13 +87,13 @@ public class HeroCamera : MonoBehaviour {
 	
 	void CalculateDesiredPosition()
 	{
-		if (TargetLookAt.getMovementState () == PlayerMovement.MovementMode.FREE)
+		if (TargetLookAt.getMovementState () != PlayerMovement.MovementMode.RUN)
 		{
 			// Evaluate distance
 			distance = Mathf.SmoothDamp (distance, desiredDistance, ref velocityDistance, DistanceSmooth);
 			desiredPosition = CalculatePosition(Y_Angle, X_Angle, distance);
 		}
-		else if (TargetLookAt.getMovementState () == PlayerMovement.MovementMode.RUN)
+		else // if (TargetLookAt.getMovementState () == PlayerMovement.MovementMode.RUN)
 		{
 			X_Angle = ClampAngle(X_Angle, TargetLookAt.transform.rotation.eulerAngles.y-20, TargetLookAt.transform.rotation.eulerAngles.y+20);
 
@@ -108,14 +108,14 @@ public class HeroCamera : MonoBehaviour {
 		Vector3 direction = new Vector3(0, 0, -dist);
 		Quaternion rotation = Quaternion.Euler(rotationX, rotationY, 0);
 
-		currentLookAt = Vector3.SmoothDamp(currentLookAt, TargetLookAt.transform.position+playerLookAtOffset, ref velocityLookAt, 0.2f);
+		currentLookAt = Vector3.SmoothDamp(currentLookAt, TargetLookAt.transform.position+playerLookAtOffset, ref velocityLookAt, 0.1f);
 
 		return currentLookAt + (rotation * direction);
 	}
 	
 	void UpdatePosition()
 	{
-		transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, 0.2f);
+		transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, 0.1f);
 		
 		transform.LookAt(currentLookAt);
 	}

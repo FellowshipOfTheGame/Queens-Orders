@@ -2,6 +2,8 @@
 
 public class PlayerMovement : MonoBehaviour
 {
+	private const float h = 0.01666666f; // DeltaTime
+
 	public enum MovementMode{FREE, BATTLE, RUN};
 
 	// Camera
@@ -11,6 +13,7 @@ public class PlayerMovement : MonoBehaviour
 	public AnimationCurve angleAccelFactor;	// Lower speed on high hills
 
 	// Movement 
+	public float mass = 1.0f;
 	public float accelFree = 20.0f;
 	public float accelRun = 35.0f;
 	public float jumpFree = 8.0f;
@@ -20,24 +23,32 @@ public class PlayerMovement : MonoBehaviour
 	public float frictionGroundMoving = 5.0f;
 	public float frictionGroundNMoving = 10.0f;
 	public float frictionAir = 0.01f;
+	private float currentFriction = 0.0f;
 
-	private Vector3 acceleration = Vector3.zero;
-	private Vector3 velocity = Vector3.zero;
+	public int cooldownJump = 15; // In Frames
 
+	
 	// Private members
+	public MovementMode movementMode; // TODO: Set as PRIVATE - public for debugging purpouses
+	public Vector3 accelForce = Vector3.zero;
+	public Vector3 velocity = Vector3.zero;	
 	private float currentAccel;
+
+	// Components
 	private CharacterController controller;
 	private CapsuleCollider body;
 
-	private MovementMode movementMode;
-	private const float h = 0.01666666f;
-	
-	private Vector3 inputDirection;
-
+	// Lock movement direction when starts to run
 	private bool isDirectionLocked = false;
 	private Vector3 lockedDirection = Vector3.zero;
+	public int stepState = 0; // Only when stepState == 0 the user may move while in BattleMode
 
+	public int jumpCD = 0; // May only jump if jumpCD == 0
 
+	// Input
+	private Vector3 inputDirection;
+	private bool jump;		// If true, the character will jump on the next update()
+	private bool running;
 
 	public void Start ()
 	{
@@ -52,6 +63,64 @@ public class PlayerMovement : MonoBehaviour
 		return movementMode;
 	}
 
+	/* Send input command to character
+	 * \param r: true for KeyDown, false for KeyUp
+	 */
+	public void InputRun(bool r){
+		running = r;
+
+		if ( running )
+		{	
+			currentAccel = accelRun;
+			movementMode = MovementMode.RUN;
+			isDirectionLocked = true;
+			lockedDirection = inputDirection;
+		}
+		else
+		{
+			currentAccel = accelFree;
+			movementMode = MovementMode.FREE;
+			isDirectionLocked = false;
+		}
+	}
+
+	/* Send jump input
+	 * The character will jump on the next Update()
+	 */
+	public void InputJump(){
+		jump = true;
+	}
+
+	/* Change character to BattleMode
+	 * Should be called when something changes the character state
+	 * EX: Attacking or receiving damage
+	 */
+	public void InputSetInBattleMode(){
+		movementMode = MovementMode.BATTLE;
+		isDirectionLocked = false;
+		stepState = 0;
+	}
+
+	/* Send movement input
+	 * The character will handle the input based on it's current MovementMode
+	 */
+	public void InputMovement(Vector3 direction){
+
+		if (!isDirectionLocked) {
+			direction.y = 0;
+			direction.Normalize();
+
+			inputDirection = direction.normalized;
+			
+		} else {
+			if ( movementMode == MovementMode.RUN 
+			&& Mathf.Abs(direction.x)+Mathf.Abs(direction.y) < 0.02f){
+				isDirectionLocked = false;
+			}
+		}
+
+	}
+
 	private Vector3 FindGroundNormal()
 	{
 		RaycastHit hit;
@@ -64,127 +133,161 @@ public class PlayerMovement : MonoBehaviour
 
 	protected void Jump(Vector3 groundNormal)
 	{
-		if (!controller.isGrounded)
+		if (!controller.isGrounded){
+			return;
+		}
+
+		jumpCD = cooldownJump;
+
+		if ( movementMode ==  MovementMode.FREE ){
+
+			velocity = (groundNormal + transform.forward*0.1f) * jumpFree;
+			accelForce.y = 0;
 			return;
 
-		if ( movementMode ==  MovementMode.FREE){
-			velocity = groundNormal*jumpFree;
-			acceleration.y = 0;
-		} else if (movementMode == MovementMode.RUN ) {
-			if (inputDirection.magnitude <= 0)
-				return;
-			velocity.y = 0;
-			Vector3 w = inputDirection + groundNormal;
-			w.Normalize();
-			w.x *= w.y;
-			w.z *= w.y;
-			w.y *= 0.3f;
-			velocity = w.normalized * jumpBattle;
-			acceleration = Vector3.zero;
+		} else if (movementMode == MovementMode.RUN && inputDirection.magnitude <= 0){
+			velocity = groundNormal*jumpBattle + transform.forward*0.1f;
+			accelForce.y = 0;
+			return;
 		}
+
+		// Jump with impulse forward to input direction
+		velocity.y = 0;
+		Vector3 w = inputDirection + groundNormal;
+		w.Normalize();
+		w.x *= w.y;
+		w.z *= w.y;
+		w.y *= 0.3f;
+		velocity = w.normalized * jumpBattle;
+		accelForce = Vector3.zero;
+		
 	}
 
+	/* Base movement used for Running and Free movement modes
+	 */
 	private void UpdateModeNormal()
 	{
 		Vector3 friction = Vector3.zero;
-
-		HandleInput();
 		Vector3 groundNormal = FindGroundNormal();
+
+		if (movementMode == MovementMode.BATTLE && stepState == 0){
+			if (inputDirection.magnitude > 0.02f){
+				stepState = 10;
+				isDirectionLocked = true;
+			}
+		} else  if (stepState > 0){
+			stepState--;
+			if (stepState == 0){
+				isDirectionLocked = false;
+			}
+		}
 		
 		if (controller.isGrounded)
 		{
-			if (inputDirection.magnitude > 0)
+			if (jumpCD > 0)
+				jumpCD--;
+
+			// Use ground direction
+			Vector3 mm = Vector3.ProjectOnPlane(inputDirection, groundNormal);
+			float angle = Vector3.Angle(mm, inputDirection);
+
+			// Going up slopes makes you go slower
+			if (mm.y >= 0) {
+				accelForce = mm * angleAccelFactor.Evaluate(angle) * currentAccel;
+			} else {
+				accelForce = mm * currentAccel;
+			}
+			accelForce.y -= gravity;
+
+			
+			if (inputDirection.magnitude > 0.01f)
 			{
 				friction = velocity*frictionGroundMoving;
 				friction.y = 0;
-			} else if (velocity.magnitude < 1){
+			} else if (velocity.magnitude < 0.3f){
 				velocity = Vector3.zero;
+				accelForce = Vector3.zero;
+				mm = Vector3.zero;
 			} else {
 				friction = velocity*frictionGroundNMoving;
 				friction.y = 0;
 			}
 			
-			// Use ground direction
-			Vector3 mm = Vector3.ProjectOnPlane(inputDirection, groundNormal);
-			float angle = Vector3.Angle(mm, inputDirection);
-			
-			// Going up slopes makes you go slower
-			if (mm.y >= 0) {
-				acceleration = mm * angleAccelFactor.Evaluate(angle) * currentAccel;
-			} else {
-				acceleration = mm * currentAccel;
-			}
-			acceleration.y -= gravity;
-			
 
-			velocity.y = -gravity;
+			velocity.y = 0;
 			// Colocar isso dentro de HandleInput?
-			if (Input.GetButton("Jump"))
+			if ( jump && jumpCD == 0 )
 			{
+				jump = false;
 				Jump(groundNormal);
 			}
 
 		} else {
-			acceleration.y -= gravity;
+			accelForce.y -= gravity;
 			friction = velocity*frictionAir;
 			friction.y = 0;
 		}
 
 		Vector3 DO = transform.position+new Vector3(0, 1.5f, 0); // debug offset
 		Debug.DrawLine(DO, DO - friction, Color.red);
-		Debug.DrawLine(DO, DO + acceleration, Color.blue);
+		Debug.DrawLine(DO, DO + accelForce, Color.blue);
 		Debug.DrawLine(DO, DO + velocity, Color.green);
 
 		// Apply friction
-		velocity = velocity + (acceleration-friction) * h;
+		velocity = velocity + (accelForce-friction)/mass * h;
+
+		print(velocity.magnitude);
 
 		// Move
 		controller.Move(velocity * h);
 		
-		// Rotate - Character will look towards it's moving velocity
-		this.transform.LookAt(this.transform.position + new Vector3 (velocity.x, 0.0f, velocity.z));
+		if (movementMode == MovementMode.BATTLE)
+		{
+			Quaternion rotation = Quaternion.Euler( 0, myCamera.transform.rotation.eulerAngles.y, 0 );
+			this.transform.LookAt(this.transform.position +  rotation*Vector3.forward);
+		} else {
+			// Rotate - Character will look towards it's moving velocity
+			this.transform.LookAt(this.transform.position + new Vector3 (velocity.x, 0.0f, velocity.z));
+		}
 	}
 
 	public void Update()
 	{
+		HandleInput();
 		UpdateModeNormal();
 	}
 
+	/* Handle input - Just for testing
+	 * Other classes (IA/Network) should call the InputX methods
+	 * to send input to the character
+	 */
 	private void HandleInput ()
 	{
-		// print ("Vertical: "+Input.GetAxis("Vertical"));
+		float axisH = Input.GetAxis("Horizontal");
+		float axisV = Input.GetAxis("Vertical");
 
-		float axisH = Input.GetAxis ("Horizontal");
-		float axisV = Input.GetAxis ("Vertical");
+		Vector3 moveX = myCamera.forward * axisV;
+		Vector3 moveY = myCamera.right * axisH;
+		Vector3 move = moveX + moveY;
 
-		if (!isDirectionLocked) {
+		InputMovement(moveX + moveY);
 
-			// Movement direction
-			Vector3 moveX = myCamera.forward * axisV;
-			Vector3 moveY = myCamera.right * axisH;
-		
-			Vector3 move = moveX + moveY;
-			move.y = 0;
-			moveX.Normalize ();
-			inputDirection = move.normalized;
+		if (Input.GetButtonDown("Run"))
+			InputRun(true);
+		else if (Input.GetButtonUp("Run"))
+			InputRun(false);
 
-		} else {
-			if ( Mathf.Abs(axisH)+Mathf.Abs(axisV) < 0.1f){
-				isDirectionLocked=false;
+		/* Enter combat mode */
+		if (Input.GetKeyDown(KeyCode.LeftControl)){
+			if (movementMode == MovementMode.FREE){
+				InputSetInBattleMode();
+			} else if (movementMode == MovementMode.BATTLE){
+				movementMode = MovementMode.FREE;
 			}
-
 		}
-	
 
-		if (Input.GetButtonDown("Run") ){
-			currentAccel = accelRun;
-			movementMode = MovementMode.RUN;
-			isDirectionLocked = true;
-			lockedDirection = inputDirection;
-		}else if (Input.GetButtonUp("Run")){
-			currentAccel = accelFree;
-			movementMode = MovementMode.FREE;
-			isDirectionLocked = false;
+		if (Input.GetButtonDown("Jump")){
+			InputJump();
 		}
 
 	}
