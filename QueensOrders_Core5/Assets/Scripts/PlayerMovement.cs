@@ -6,6 +6,29 @@ public class PlayerMovement : MonoBehaviour
 
 	public enum MovementMode{FREE, BATTLE, RUN};
 
+	public const int JUMPSTATE_ONGROUND 	= 0;
+	public const int JUMPSTATE_JUMPSTART 	= 1;
+	public const int JUMPSTATE_OFFGROUND 	= 2;
+	public const int JUMPSTATE_BACKTOGROUND = 3;
+	public const int JUMPSTATE_RECOVERED 	= 4;
+
+	/* ANIMATOR STATES
+		> JumpState (int): Define os estados de pulo.
+			0: Nao esta pulando.
+			1: Inicio do pulo (carregar pulo)
+			2: Fora do chao
+			3: Toca no chao
+			4: Termina de se recuperar -> frame seguinte passa para estado 0
+		> MovementMode (int): Define estado de movimento
+			0: Free
+			1: Battle
+			2: Run
+		> MoveSpeedXZ (float): Velocidade de movimento em XZ
+		> MoveSpeedY (float): Velocidade de movimento em Y
+		> BattleStep (float): Tempo de um passo no modo batalha
+			0.0 [inicio] ~ 1.0 [meio] ~ 0.0 [fim]
+	*/
+
 	// Camera
 	public Transform myCamera;				// Used for 3rd person movement
 
@@ -25,7 +48,9 @@ public class PlayerMovement : MonoBehaviour
 	public float frictionAir = 0.01f;
 
 	[Tooltip("Time in frames")]
-	public int afterJumpHold = 5; // After a jump the character should hold a few frames without moving
+	public int afterJumpHold = 8; // After a jump the character should hold a few frames without moving
+	[Tooltip("Time in frames")]
+	public int beforeJumpHold = 6; // Before jumping the character should hold a few frames without moving
 	[Tooltip("Time in frames")]
 	public int cooldownJump = 15; // Cooldown between jumps
 	[Tooltip("Time in frames")]
@@ -44,6 +69,7 @@ public class PlayerMovement : MonoBehaviour
 	// Components
 	private CharacterController controller;
 	private CapsuleCollider body;
+	private Animator animator;
 
 	// Lock movement direction when starts to run
 	private bool isDirectionLocked = false;
@@ -54,6 +80,8 @@ public class PlayerMovement : MonoBehaviour
 	public int jumpCD = 0; // May only jump if jumpCD == 0
 	[Tooltip("DEBUG ONLY")]
 	public int afterJumpHoldCD = 0; // Character may move only if jumpHoldCD == 0
+	[Tooltip("DEBUG ONLY")]
+	public int beforeJumpHoldCD = 0; // Character may move only if jumpHoldCD == 0
 
 	// Input
 	private Vector3 inputDirection;
@@ -63,8 +91,9 @@ public class PlayerMovement : MonoBehaviour
 	public void Start()
 	{
 		movementMode = MovementMode.FREE;
-		controller = GetComponent<CharacterController> ();
-		body = GetComponent<CapsuleCollider> ();
+		controller = GetComponent<CharacterController>();
+		body = GetComponent<CapsuleCollider>();
+		animator = GetComponent<Animator>();
 
 		currentAccel = accelFree;
 	}
@@ -97,7 +126,12 @@ public class PlayerMovement : MonoBehaviour
 	 * The character will jump on the next Update()
 	 */
 	public void InputJump(){
+
+		if (jumpCD != 0 )
+			return;
+
 		jump = true;
+		beforeJumpHoldCD = beforeJumpHold;
 	}
 
 	/* Change character to BattleMode
@@ -155,6 +189,12 @@ public class PlayerMovement : MonoBehaviour
 		return Vector3.up*0.01f; // weak normal
 	}
 
+	protected void OnJumpStart(){
+		animator.SetInteger("JumpState", JUMPSTATE_JUMPSTART);
+
+		// ~~ efeitos
+	}
+
 	protected void Jump(Vector3 groundNormal)
 	{
 		if (!controller.isGrounded){
@@ -165,29 +205,26 @@ public class PlayerMovement : MonoBehaviour
 		afterJumpHoldCD = afterJumpHold;
 
 		if ( movementMode ==  MovementMode.FREE ){
-
 			velocity = (groundNormal + transform.forward*0.1f) * jumpFree;
 			accelForce.y = 0;
-			return;
-
 		} else if (movementMode == MovementMode.RUN && inputDirection.magnitude <= 0){
 			velocity = groundNormal*jumpBattle + transform.forward*0.1f;
 			accelForce.y = 0;
-			return;
+		} else {
+			// Jump with impulse forward to input direction
+			velocity.y = 0;
+			Vector3 w = inputDirection + groundNormal;
+			w.Normalize();
+			w.x *= w.y;
+			w.z *= w.y;
+			w.y *= 0.3f;
+			velocity = w.normalized * jumpBattle;
+			accelForce = Vector3.zero;
 		}
 
-		// Jump with impulse forward to input direction
-		velocity.y = 0;
-		Vector3 w = inputDirection + groundNormal;
-		w.Normalize();
-		w.x *= w.y;
-		w.z *= w.y;
-		w.y *= 0.3f;
-		velocity = w.normalized * jumpBattle;
-		accelForce = Vector3.zero;
-		
+		OnJumpStart();
 	}
-	
+
 	/* Base movement used for Running and Free movement modes
 	 */
 	private void UpdateModeNormal()
@@ -213,14 +250,35 @@ public class PlayerMovement : MonoBehaviour
 			Vector3 mm = Vector3.ProjectOnPlane(inputDirection, groundNormal);
 			float angle = Vector3.Angle(mm, inputDirection);
 
+
+			// Time between jumps
 			if (jumpCD > 0)
 				jumpCD--;
 
-			// Do not move for a few frames after a jump
-			if (afterJumpHoldCD > 0){
-				mm = Vector3.zero;
-				afterJumpHoldCD--;
+			if (beforeJumpHoldCD > 0){
+				mm = Vector3.zero;	// Avoid movement
+				beforeJumpHoldCD--;
+				if (beforeJumpHoldCD == 0){ // Finished recovering
+					animator.SetInteger("JumpState", JUMPSTATE_JUMPSTART);
+				}
 			}
+
+			// Do not move for a few frames after a jump
+			if (afterJumpHoldCD == afterJumpHold){
+				animator.SetInteger("JumpState", JUMPSTATE_BACKTOGROUND);
+			}
+
+			if (afterJumpHoldCD > 0)
+			{
+				mm = Vector3.zero;	// Avoid movement
+				afterJumpHoldCD--;
+				if (afterJumpHoldCD == 0){ // Finished recovering
+					animator.SetInteger("JumpState", JUMPSTATE_RECOVERED);
+				}
+			} else {
+				animator.SetInteger("JumpState", JUMPSTATE_ONGROUND);
+			}
+
 
 			// Going up slopes makes you go slower
 			if (mm.y >= 0) {
@@ -251,7 +309,7 @@ public class PlayerMovement : MonoBehaviour
 
 			velocity.y = -gravity;
 			// Colocar isso dentro de HandleInput?
-			if ( jump && jumpCD == 0 )
+			if ( jump && jumpCD == 0 && beforeJumpHoldCD == 0 )
 			{
 				jump = false;
 				Jump(groundNormal);
@@ -261,6 +319,8 @@ public class PlayerMovement : MonoBehaviour
 			accelForce.y -= gravity;
 			friction = velocity*frictionAir;
 			friction.y = 0;
+
+			animator.SetInteger("JumpState", JUMPSTATE_OFFGROUND);
 		}
 
 		Vector3 DO = transform.position+new Vector3(0, 1.5f, 0); // debug offset
@@ -276,12 +336,19 @@ public class PlayerMovement : MonoBehaviour
 		
 		if (movementMode == MovementMode.BATTLE)
 		{
+			animator.SetFloat("BattleStep", getBattleStep());
+
 			Quaternion rotation = Quaternion.Euler( 0, myCamera.transform.rotation.eulerAngles.y, 0 );
 			this.transform.LookAt(this.transform.position +  rotation*Vector3.forward);
 		} else {
 			// Rotate - Character will look towards it's moving velocity
 			this.transform.LookAt(this.transform.position + new Vector3 (velocity.x, 0.0f, velocity.z));
 		}
+
+		// Update animator
+		animator.SetInteger("MovementMode", (int)movementMode);
+		animator.SetFloat("MoveSpeedXZ", (new Vector3(velocity.x, 0, velocity.z)).magnitude );
+		animator.SetFloat("MoveSpeedY", velocity.y);
 	}
 
 	public void Update()
