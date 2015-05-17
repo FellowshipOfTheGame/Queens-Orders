@@ -1,5 +1,30 @@
 ﻿using UnityEngine;
 
+
+/* 
+	ANIMATOR STATES
+
+	> JumpState (int): Define os estados de pulo.
+		0: Nao esta pulando.
+		1: Inicio do pulo (carregar pulo)
+		2: Fora do chao
+		3: Toca no chao
+		4: Termina de se recuperar -> frame seguinte passa para estado 0
+
+	> MovementMode (int): Define estado de movimento
+		0: Free
+		1: Battle
+		2: Run
+
+	> MoveSpeedXZ (float): Velocidade de movimento em XZ
+
+	> MoveSpeedY (float): Velocidade de movimento em Y
+
+	> BattleStep (float): Tempo de um passo no modo batalha
+		0.0 [inicio] ~ 1.0 [meio] ~ 0.0 [fim]
+
+*/
+
 public class PlayerMovement : MonoBehaviour
 {
 	private const float h = 0.01666666f; // DeltaTime
@@ -11,23 +36,6 @@ public class PlayerMovement : MonoBehaviour
 	public const int JUMPSTATE_OFFGROUND 	= 2;
 	public const int JUMPSTATE_BACKTOGROUND = 3;
 	public const int JUMPSTATE_RECOVERED 	= 4;
-
-	/* ANIMATOR STATES
-		> JumpState (int): Define os estados de pulo.
-			0: Nao esta pulando.
-			1: Inicio do pulo (carregar pulo)
-			2: Fora do chao
-			3: Toca no chao
-			4: Termina de se recuperar -> frame seguinte passa para estado 0
-		> MovementMode (int): Define estado de movimento
-			0: Free
-			1: Battle
-			2: Run
-		> MoveSpeedXZ (float): Velocidade de movimento em XZ
-		> MoveSpeedY (float): Velocidade de movimento em Y
-		> BattleStep (float): Tempo de um passo no modo batalha
-			0.0 [inicio] ~ 1.0 [meio] ~ 0.0 [fim]
-	*/
 
 	// Camera
 	public Transform myCamera;				// Used for 3rd person movement
@@ -43,16 +51,17 @@ public class PlayerMovement : MonoBehaviour
 	public float jumpBattle = 15.0f;
 
 	public float gravity = 9.81f;
-	public float frictionGroundMoving = 5.0f;
-	public float frictionGroundNMoving = 10.0f;
 	public float frictionAir = 0.01f;
+
+	public float maxRunningSpeed = 10.0f;
+	public float maxWalkingSpeed = 6.0f;
 
 	[Tooltip("Time in frames")]
 	public int afterJumpHold = 8; // After a jump the character should hold a few frames without moving
 	[Tooltip("Time in frames")]
 	public int beforeJumpHold = 6; // Before jumping the character should hold a few frames without moving
 	[Tooltip("Time in frames")]
-	public int cooldownJump = 15; // Cooldown between jumps
+	public int cooldownJump = 14; // Cooldown between jumps
 	[Tooltip("Time in frames")]
 	public int framesPerStep = 10; // Number of frames for each step on BattleMode
 
@@ -64,7 +73,9 @@ public class PlayerMovement : MonoBehaviour
 	public Vector3 accelForce = Vector3.zero;
 	[Tooltip("DEBUG ONLY")]
 	public Vector3 velocity = Vector3.zero;	
+
 	private float currentAccel; // Character acceleration changes when running/walking
+	private float currentMaxSpd; // Character acceleration changes when running/walking
 
 	// Components
 	private CharacterController controller;
@@ -96,6 +107,7 @@ public class PlayerMovement : MonoBehaviour
 		animator = GetComponent<Animator>();
 
 		currentAccel = accelFree;
+		currentMaxSpd = maxWalkingSpeed;
 	}
 
 	public MovementMode getMovementState(){
@@ -111,12 +123,14 @@ public class PlayerMovement : MonoBehaviour
 		if ( running )
 		{
 			currentAccel = accelRun;
+			currentMaxSpd = maxRunningSpeed;
 			movementMode = MovementMode.RUN;
 			isDirectionLocked = true;
 		}
 		else
 		{
 			currentAccel = accelFree;
+			currentMaxSpd = maxWalkingSpeed;
 			movementMode = MovementMode.FREE;
 			isDirectionLocked = false;
 		}
@@ -247,8 +261,8 @@ public class PlayerMovement : MonoBehaviour
 		if (controller.isGrounded)
 		{
 			// Use ground direction
-			Vector3 mm = Vector3.ProjectOnPlane(inputDirection, groundNormal);
-			float angle = Vector3.Angle(mm, inputDirection);
+			Vector3 mov = Vector3.ProjectOnPlane(inputDirection, groundNormal);
+			float angle = Vector3.Angle(mov, inputDirection);
 
 
 			// Time between jumps
@@ -256,7 +270,7 @@ public class PlayerMovement : MonoBehaviour
 				jumpCD--;
 
 			if (beforeJumpHoldCD > 0){
-				mm = Vector3.zero;	// Avoid movement
+				mov = Vector3.zero;	// Avoid movement
 				beforeJumpHoldCD--;
 				if (beforeJumpHoldCD == 0){ // Finished recovering
 					animator.SetInteger("JumpState", JUMPSTATE_JUMPSTART);
@@ -270,7 +284,7 @@ public class PlayerMovement : MonoBehaviour
 
 			if (afterJumpHoldCD > 0)
 			{
-				mm = Vector3.zero;	// Avoid movement
+				mov = Vector3.zero;	// Avoid movement
 				afterJumpHoldCD--;
 				if (afterJumpHoldCD == 0){ // Finished recovering
 					animator.SetInteger("JumpState", JUMPSTATE_RECOVERED);
@@ -281,14 +295,15 @@ public class PlayerMovement : MonoBehaviour
 
 
 			// Going up slopes makes you go slower
-			if (mm.y >= 0) {
-				accelForce = mm * angleAccelFactor.Evaluate(angle) * currentAccel;
+			if (mov.y >= 0) {
+				accelForce = mov * angleAccelFactor.Evaluate(angle) * currentAccel;
 			} else {
-				accelForce = mm * currentAccel;
+				accelForce = mov * currentAccel;
 			}
 			accelForce.y -= gravity;
 
 			
+			float frictionGroundMoving = (currentAccel/currentMaxSpd);
 			if (inputDirection.magnitude > 0.01f)
 			{
 				friction = velocity*frictionGroundMoving;
@@ -299,9 +314,9 @@ public class PlayerMovement : MonoBehaviour
 				if (velXZ.magnitude < 0.3f){
 					velocity.x = velocity.z = 0;
 					accelForce = Vector3.zero;
-					mm = Vector3.zero;
+					mov = Vector3.zero;
 				} else {
-					friction = velocity*frictionGroundNMoving;
+					friction = velocity*frictionGroundMoving;
 					friction.y = 0;
 				}
 			}
@@ -334,6 +349,7 @@ public class PlayerMovement : MonoBehaviour
 		// Move
 		controller.Move(velocity * h);
 		
+		// Rotate character
 		if (movementMode == MovementMode.BATTLE)
 		{
 			animator.SetFloat("BattleStep", getBattleStep());
@@ -345,9 +361,12 @@ public class PlayerMovement : MonoBehaviour
 			this.transform.LookAt(this.transform.position + new Vector3 (velocity.x, 0.0f, velocity.z));
 		}
 
+		float velocityXZmag = (new Vector3(velocity.x, 0, velocity.z)).magnitude;
+		print(velocityXZmag);
+
 		// Update animator
 		animator.SetInteger("MovementMode", (int)movementMode);
-		animator.SetFloat("MoveSpeedXZ", (new Vector3(velocity.x, 0, velocity.z)).magnitude );
+		animator.SetFloat("MoveSpeedXZ", velocityXZmag/maxRunningSpeed);
 		animator.SetFloat("MoveSpeedY", velocity.y);
 	}
 
