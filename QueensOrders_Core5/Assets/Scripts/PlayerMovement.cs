@@ -25,14 +25,21 @@ public class PlayerMovement : MonoBehaviour
 	public float frictionAir = 0.01f;
 
 	[Tooltip("Time in frames")]
-	public int cooldownJump = 15; // In Frames
+	public int afterJumpHold = 5; // After a jump the character should hold a few frames without moving
+	[Tooltip("Time in frames")]
+	public int cooldownJump = 15; // Cooldown between jumps
+	[Tooltip("Time in frames")]
+	public int framesPerStep = 10; // Number of frames for each step on BattleMode
 
 	
 	// Private members
+	[Tooltip("DEBUG ONLY")]
 	public MovementMode movementMode; // TODO: Set as PRIVATE - public for debugging purpouses
+	[Tooltip("DEBUG ONLY")]
 	public Vector3 accelForce = Vector3.zero;
+	[Tooltip("DEBUG ONLY")]
 	public Vector3 velocity = Vector3.zero;	
-	private float currentAccel;
+	private float currentAccel; // Character acceleration changes when running/walking
 
 	// Components
 	private CharacterController controller;
@@ -40,16 +47,20 @@ public class PlayerMovement : MonoBehaviour
 
 	// Lock movement direction when starts to run
 	private bool isDirectionLocked = false;
-	public int stepState = 0; // Only when stepState == 0 the user may move while in BattleMode
 
+	[Tooltip("DEBUG ONLY")]
+	public int stepState = 0; // Character may move in BattleMode only when stepState == 0
+	[Tooltip("DEBUG ONLY")]
 	public int jumpCD = 0; // May only jump if jumpCD == 0
+	[Tooltip("DEBUG ONLY")]
+	public int afterJumpHoldCD = 0; // Character may move only if jumpHoldCD == 0
 
 	// Input
 	private Vector3 inputDirection;
 	private bool jump;		// If true, the character will jump on the next update()
 	private bool running;
 
-	public void Start ()
+	public void Start()
 	{
 		movementMode = MovementMode.FREE;
 		controller = GetComponent<CharacterController> ();
@@ -119,6 +130,21 @@ public class PlayerMovement : MonoBehaviour
 
 	}
 
+	/**
+	 * Return the step current time in timeline
+	 * 0.0 begin -> 1.0 middle -> 0.0 end
+	 */
+	public float getBattleStep()
+	{
+		float normalized = (float)stepState/((float)framesPerStep/2.0f); // 0 ~ 2
+
+		if (normalized < 1.0f){
+			return normalized;
+		} 
+
+		return 2.0f - normalized;
+	}
+
 	private Vector3 FindGroundNormal()
 	{
 		RaycastHit hit;
@@ -136,6 +162,7 @@ public class PlayerMovement : MonoBehaviour
 		}
 
 		jumpCD = cooldownJump;
+		afterJumpHoldCD = afterJumpHold;
 
 		if ( movementMode ==  MovementMode.FREE ){
 
@@ -170,7 +197,7 @@ public class PlayerMovement : MonoBehaviour
 
 		if (movementMode == MovementMode.BATTLE && stepState == 0){
 			if (inputDirection.magnitude > 0.02f){
-				stepState = 10;
+				stepState = framesPerStep;
 				isDirectionLocked = true;
 			}
 		} else  if (stepState > 0){
@@ -182,12 +209,18 @@ public class PlayerMovement : MonoBehaviour
 		
 		if (controller.isGrounded)
 		{
-			if (jumpCD > 0)
-				jumpCD--;
-
 			// Use ground direction
 			Vector3 mm = Vector3.ProjectOnPlane(inputDirection, groundNormal);
 			float angle = Vector3.Angle(mm, inputDirection);
+
+			if (jumpCD > 0)
+				jumpCD--;
+
+			// Do not move for a few frames after a jump
+			if (afterJumpHoldCD > 0){
+				mm = Vector3.zero;
+				afterJumpHoldCD--;
+			}
 
 			// Going up slopes makes you go slower
 			if (mm.y >= 0) {
