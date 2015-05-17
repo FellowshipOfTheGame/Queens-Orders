@@ -377,10 +377,10 @@ public class PlayerMovement : MonoBehaviour
 		{
 			animator.SetFloat("BattleStep", getBattleStep());
 
-			animator.SetFloat("StepXvel", Vector3.Project(velocityXZ.normalized, transform.right).x);
-			animator.SetFloat("StepZvel", Vector3.Project(velocityXZ.normalized, transform.forward).z);
-			//print("X:"+ Vector3.Project(velocityXZ.normalized, transform.right).x 
-			//	+ " Z:"+ Vector3.Project(velocityXZ.normalized, transform.forward).z);
+			animator.SetFloat("StepXvel", Vector3.Project(velocityXZ.normalized, transform.right).magnitude);
+			animator.SetFloat("StepZvel", Vector3.Project(velocityXZ.normalized, transform.forward).magnitude);
+			//print("X:"+ Vector3.Project(velocityXZ.normalized, transform.right).magnitude 
+			//      + " Z:"+ Vector3.Project(velocityXZ.normalized, transform.forward).magnitude);
 
 			Quaternion rotation = Quaternion.Euler( 0, myCamera.rotation.eulerAngles.y, 0 );
 			transform.rotation = Quaternion.RotateTowards(transform.rotation, rotation, 10.0f);
