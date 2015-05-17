@@ -109,7 +109,6 @@ public class HeroCamera : MonoBehaviour {
 		Vector3 direction = new Vector3(0, 0, -dist);
 		Quaternion rotation = Quaternion.Euler(rotationX, rotationY, 0);
 
-		// currentLookAt = Vector3.SmoothDamp(currentLookAt, TargetLookAt.transform.position+playerLookAtOffset, ref velocityLookAt, 0.1f);
 		currentLookAt = Vector3.Lerp(currentLookAt, TargetLookAt.transform.position+playerLookAtOffset, 0.2f);
 
 		return currentLookAt + (rotation * direction);
@@ -117,7 +116,6 @@ public class HeroCamera : MonoBehaviour {
 	
 	void UpdatePosition()
 	{
-		// transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, 0.1f);
 		transform.position = Vector3.Lerp(transform.position, desiredPosition, 0.2f);
 		
 		transform.LookAt(currentLookAt);

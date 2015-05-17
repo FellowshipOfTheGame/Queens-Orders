@@ -362,7 +362,7 @@ public class PlayerMovement : MonoBehaviour
 		}
 
 		float velocityXZmag = (new Vector3(velocity.x, 0, velocity.z)).magnitude;
-		print(velocityXZmag);
+		// print(velocityXZmag);
 
 		// Update animator
 		animator.SetInteger("MovementMode", (int)movementMode);
