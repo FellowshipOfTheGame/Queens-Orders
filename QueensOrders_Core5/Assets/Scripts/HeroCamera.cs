@@ -21,6 +21,9 @@ public class HeroCamera : MonoBehaviour {
 	public float Y_MinLimit = -40.0f;
 	public float Y_MaxLimit = 80.0f;
 
+	public float X_MaxOnFree = 30.0f;
+	public float X_MaxOnBattle = 15.0f;
+
 	private float X_Angle = 0.0f;
 	private float Y_Angle = 0.0f;
 	
@@ -32,7 +35,7 @@ public class HeroCamera : MonoBehaviour {
 	public float Y_Smooth = 0.1f;
 	private Vector3 velocity = Vector3.zero;
 	private Vector3 velocityLookAt = Vector3.zero;
-	
+
 	void Start()
 	{
 		distance = Mathf.Clamp(distance, DistanceMin, DistanceMax);
@@ -70,6 +73,11 @@ public class HeroCamera : MonoBehaviour {
 		
 		mouseX = Input.GetAxis("Mouse X") * X_MouseSensitivity;
 		mouseY = Input.GetAxis("Mouse Y") * Y_MouseSensitivity;
+
+		if ( TargetLookAt.getMovementState () == PlayerMovement.MovementMode.BATTLE )
+			mouseX = Mathf.Clamp(mouseX, -X_MaxOnBattle, X_MaxOnBattle);
+		else //if (TargetLookAt.getMovementState () != PlayerMovement.MovementMode.RUN)
+			mouseX = Mathf.Clamp(mouseX, -X_MaxOnFree, X_MaxOnFree);
 		
 		// this is where the mouseY is limited - Helper script		
 		X_Angle += mouseX;
@@ -115,9 +123,8 @@ public class HeroCamera : MonoBehaviour {
 	}
 	
 	void UpdatePosition()
-	{
-		transform.position = Vector3.Lerp(transform.position, desiredPosition, 0.2f);
-		
+	{		
+		transform.position = Vector3.Lerp(transform.position, desiredPosition, 0.2f);;
 		transform.LookAt(currentLookAt);
 	}
 	

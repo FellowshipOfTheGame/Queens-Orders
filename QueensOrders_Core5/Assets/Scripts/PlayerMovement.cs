@@ -20,6 +20,15 @@
 
 	> MoveSpeedY (float): Velocidade de movimento em Y
 
+	-- ONLY ON BATTLE --
+	> StepXvel (float): Indicates left/right movement
+		Left interval (-1, 0)
+		Right interval (0, 1)
+
+	> StepZvel: Indicates backward/forward movement
+		Backward interval (-1, 0)
+		Forward interval (0, 1)
+
 	> BattleStep (float): Tempo de um passo no modo batalha
 		0.0 [inicio] ~ 1.0 [meio] ~ 0.0 [fim]
 
@@ -48,7 +57,8 @@ public class PlayerMovement : MonoBehaviour
 	public float accelFree = 20.0f;
 	public float accelRun = 35.0f;
 	public float jumpFree = 8.0f;
-	public float jumpBattle = 15.0f;
+	public float jumpBattle = 6.0f;
+	public float jumpRun = 12.0f;
 
 	public float gravity = 9.81f;
 	public float frictionAir = 0.01f;
@@ -156,6 +166,7 @@ public class PlayerMovement : MonoBehaviour
 		movementMode = MovementMode.BATTLE;
 		isDirectionLocked = false;
 		stepState = 0;
+		currentAccel = accelFree;
 	}
 
 	/* Send movement input
@@ -219,12 +230,12 @@ public class PlayerMovement : MonoBehaviour
 		afterJumpHoldCD = afterJumpHold;
 
 		if ( movementMode ==  MovementMode.FREE ){
-			velocity = (groundNormal + transform.forward*0.1f) * jumpFree;
+			velocity = (groundNormal + inputDirection*0.7f).normalized * jumpFree;
 			accelForce.y = 0;
 		} else if (movementMode == MovementMode.RUN && inputDirection.magnitude <= 0){
-			velocity = groundNormal*jumpBattle + transform.forward*0.1f;
+			velocity = (groundNormal + transform.forward*0.2f).normalized * jumpFree;
 			accelForce.y = 0;
-		} else {
+		} else if (movementMode == MovementMode.RUN) {
 			// Jump with impulse forward to input direction
 			velocity.y = 0;
 			Vector3 w = inputDirection + groundNormal;
@@ -232,6 +243,16 @@ public class PlayerMovement : MonoBehaviour
 			w.x *= w.y;
 			w.z *= w.y;
 			w.y *= 0.3f;
+			velocity = w.normalized * jumpRun;
+			accelForce = Vector3.zero;
+		} else {
+			// Jump with impulse forward to input direction
+			velocity.y = 0;
+			Vector3 w = inputDirection + groundNormal;
+			w.Normalize();
+			w.x *= w.y;
+			w.z *= w.y;
+			w.y *= 0.4f;
 			velocity = w.normalized * jumpBattle;
 			accelForce = Vector3.zero;
 		}
@@ -270,7 +291,7 @@ public class PlayerMovement : MonoBehaviour
 				jumpCD--;
 
 			if (beforeJumpHoldCD > 0){
-				mov = Vector3.zero;	// Avoid movement
+				// mov = Vector3.zero;	// Avoid movement
 				beforeJumpHoldCD--;
 				if (beforeJumpHoldCD == 0){ // Finished recovering
 					animator.SetInteger("JumpState", JUMPSTATE_JUMPSTART);
@@ -349,16 +370,25 @@ public class PlayerMovement : MonoBehaviour
 		// Move
 		controller.Move(velocity * h);
 		
+		Vector3 velocityXZ = new Vector3 (velocity.x, 0.0f, velocity.z);
+
 		// Rotate character
 		if (movementMode == MovementMode.BATTLE)
 		{
 			animator.SetFloat("BattleStep", getBattleStep());
 
-			Quaternion rotation = Quaternion.Euler( 0, myCamera.transform.rotation.eulerAngles.y, 0 );
-			this.transform.LookAt(this.transform.position +  rotation*Vector3.forward);
+			animator.SetFloat("StepXvel", Vector3.Project(velocityXZ.normalized, transform.right).x);
+			animator.SetFloat("StepZvel", Vector3.Project(velocityXZ.normalized, transform.forward).z);
+			//print("X:"+ Vector3.Project(velocityXZ.normalized, transform.right).x 
+			//	+ " Z:"+ Vector3.Project(velocityXZ.normalized, transform.forward).z);
+
+			Quaternion rotation = Quaternion.Euler( 0, myCamera.rotation.eulerAngles.y, 0 );
+			transform.rotation = Quaternion.RotateTowards(transform.rotation, rotation, 10.0f);
+
+			//this.transform.LookAt(this.transform.position +  rotation*Vector3.forward);
 		} else {
 			// Rotate - Character will look towards it's moving velocity
-			this.transform.LookAt(this.transform.position + new Vector3 (velocity.x, 0.0f, velocity.z));
+			this.transform.LookAt(this.transform.position + velocityXZ);
 		}
 
 		float velocityXZmag = (new Vector3(velocity.x, 0, velocity.z)).magnitude;
@@ -385,8 +415,8 @@ public class PlayerMovement : MonoBehaviour
 		float axisH = Input.GetAxis("Horizontal");
 		float axisV = Input.GetAxis("Vertical");
 
-		Vector3 moveX = myCamera.forward * axisV;
-		Vector3 moveY = myCamera.right * axisH;
+		Vector3 moveX = myCamera.transform.forward * axisV;
+		Vector3 moveY = myCamera.transform.right * axisH;
 
 		InputMovement(moveX + moveY);
 
