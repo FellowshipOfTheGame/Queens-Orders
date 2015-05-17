@@ -56,7 +56,7 @@ public class HeroCamera : MonoBehaviour {
 	
 	void HandlePlayerInput()
 	{
-		var deadZone = 0.01; // mousewheel deadZone
+		float deadZone = 0.01f; // mousewheel deadZone
 
 		if (Input.GetKeyDown("escape"))
 		{
@@ -102,20 +102,23 @@ public class HeroCamera : MonoBehaviour {
 			desiredPosition = CalculatePosition(Y_Angle, X_Angle, distance);
 		}
 	}
-
+	
+	
 	Vector3 CalculatePosition(float rotationX, float rotationY, float dist)
 	{
 		Vector3 direction = new Vector3(0, 0, -dist);
 		Quaternion rotation = Quaternion.Euler(rotationX, rotationY, 0);
 
-		currentLookAt = Vector3.SmoothDamp(currentLookAt, TargetLookAt.transform.position+playerLookAtOffset, ref velocityLookAt, 0.1f);
+		// currentLookAt = Vector3.SmoothDamp(currentLookAt, TargetLookAt.transform.position+playerLookAtOffset, ref velocityLookAt, 0.1f);
+		currentLookAt = Vector3.Lerp(currentLookAt, TargetLookAt.transform.position+playerLookAtOffset, 0.2f);
 
 		return currentLookAt + (rotation * direction);
 	}
 	
 	void UpdatePosition()
 	{
-		transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, 0.1f);
+		// transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, 0.1f);
+		transform.position = Vector3.Lerp(transform.position, desiredPosition, 0.2f);
 		
 		transform.LookAt(currentLookAt);
 	}

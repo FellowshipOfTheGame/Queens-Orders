@@ -24,6 +24,7 @@ public class PlayerMovement : MonoBehaviour
 	public float frictionGroundNMoving = 10.0f;
 	public float frictionAir = 0.01f;
 
+	[Tooltip("Time in frames")]
 	public int cooldownJump = 15; // In Frames
 
 	
@@ -39,7 +40,6 @@ public class PlayerMovement : MonoBehaviour
 
 	// Lock movement direction when starts to run
 	private bool isDirectionLocked = false;
-	private Vector3 lockedDirection = Vector3.zero;
 	public int stepState = 0; // Only when stepState == 0 the user may move while in BattleMode
 
 	public int jumpCD = 0; // May only jump if jumpCD == 0
@@ -69,11 +69,10 @@ public class PlayerMovement : MonoBehaviour
 		running = r;
 
 		if ( running )
-		{	
+		{
 			currentAccel = accelRun;
 			movementMode = MovementMode.RUN;
 			isDirectionLocked = true;
-			lockedDirection = inputDirection;
 		}
 		else
 		{
@@ -161,7 +160,7 @@ public class PlayerMovement : MonoBehaviour
 		accelForce = Vector3.zero;
 		
 	}
-
+	
 	/* Base movement used for Running and Free movement modes
 	 */
 	private void UpdateModeNormal()
@@ -269,7 +268,6 @@ public class PlayerMovement : MonoBehaviour
 
 		Vector3 moveX = myCamera.forward * axisV;
 		Vector3 moveY = myCamera.right * axisH;
-		Vector3 move = moveX + moveY;
 
 		InputMovement(moveX + moveY);
 
