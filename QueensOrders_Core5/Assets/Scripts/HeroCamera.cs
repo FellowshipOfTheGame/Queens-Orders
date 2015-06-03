@@ -33,8 +33,6 @@ public class HeroCamera : MonoBehaviour {
 	
 	public float X_Smooth = 0.05f;
 	public float Y_Smooth = 0.1f;
-	private Vector3 velocity = Vector3.zero;
-	private Vector3 velocityLookAt = Vector3.zero;
 
 	void Start()
 	{
