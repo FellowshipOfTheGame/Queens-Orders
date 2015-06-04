@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 
 public class HeroCamera : MonoBehaviour {
-	public PlayerMovement TargetLookAt;
+	public CharacterMovement TargetLookAt;
 	public Vector3 playerLookAtOffset = new Vector3(0,3,0);
 
 	private Vector3 currentLookAt;
@@ -72,7 +72,7 @@ public class HeroCamera : MonoBehaviour {
 		mouseX = Input.GetAxis("Mouse X") * X_MouseSensitivity;
 		mouseY = Input.GetAxis("Mouse Y") * Y_MouseSensitivity;
 
-		if ( TargetLookAt.getMovementState () == PlayerMovement.MovementMode.BATTLE )
+		if ( TargetLookAt.getMovementState() == CharacterMovement.MovementMode.BATTLE )
 			mouseX = Mathf.Clamp(mouseX, -X_MaxOnBattle, X_MaxOnBattle);
 		else //if (TargetLookAt.getMovementState () != PlayerMovement.MovementMode.RUN)
 			mouseX = Mathf.Clamp(mouseX, -X_MaxOnFree, X_MaxOnFree);
@@ -93,7 +93,7 @@ public class HeroCamera : MonoBehaviour {
 	
 	void CalculateDesiredPosition()
 	{
-		if (TargetLookAt.getMovementState () != PlayerMovement.MovementMode.RUN)
+		if (TargetLookAt.getMovementState () != CharacterMovement.MovementMode.RUN)
 		{
 			// Evaluate distance
 			distance = Mathf.SmoothDamp (distance, desiredDistance, ref velocityDistance, DistanceSmooth);

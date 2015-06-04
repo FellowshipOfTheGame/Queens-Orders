@@ -308,7 +308,7 @@ public class CharacterMovement : MonoBehaviour
 	
 	/* Base movement used for Running and Free movement modes
 	 */
-	public void UpdateCharacterMovement()
+	public void Update()
 	{
 		Vector3 friction = Vector3.zero;
 		Vector3 groundNormal = FindGroundNormal();
@@ -330,10 +330,7 @@ public class CharacterMovement : MonoBehaviour
 			// Use ground direction
 			Vector3 mov = Vector3.ProjectOnPlane(inputDirection, groundNormal);
 			float angle = Vector3.Angle(mov, inputDirection);
-
-
 			handleJumpStates(ref mov);
-
 
 			// Going up slopes makes you go slower
 			if (mov.y >= 0) {
@@ -415,6 +412,7 @@ public class CharacterMovement : MonoBehaviour
 		// print(velocityXZmag);
 
 		// Update animator
+		animator.SetFloat("SpeedMagnitude", velocityXZmag);
 		animator.SetInteger("MovementMode", (int)movementMode);
 		animator.SetFloat("MoveSpeedXZ", velocityXZmag/maxRunningSpeed);
 		animator.SetFloat("MoveSpeedY", velocity.y);
