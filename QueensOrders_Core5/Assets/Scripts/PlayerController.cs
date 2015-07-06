@@ -53,9 +53,9 @@ public class PlayerController : MonoBehaviour
 		///////// WARRIOR BEHAVIOUR
 
 		if (Input.GetMouseButtonDown(0)) {
-			behaviour.InputAttack(true);
+			behaviour.InputAttack1(true);
 		} else if (Input.GetMouseButtonUp(0)) {
-			behaviour.InputAttack(false);
+			behaviour.InputAttack1(false);
 		}
 
 

@@ -8,11 +8,13 @@ class CharacterAnimator : MonoBehaviour
 {
     private Animator animator;
     private CharacterMovement movement;
+    private WarriorBehaviour behaviour;
 
     void Start()
     {
         animator = GetComponent<Animator>();
         movement = GetComponent<CharacterMovement>();
+        behaviour = GetComponent<WarriorBehaviour>();
     }
 
     void LateUpdate()
@@ -29,6 +31,20 @@ class CharacterAnimator : MonoBehaviour
                 break;
             case CharacterMovement.MovementMode.FREE:
                 UpdateFree();
+                break;
+        }
+
+        BEHAVIOUR_TYPE behaviourType = behaviour.getBehaviourType();
+        switch (behaviourType)
+        {
+            case BEHAVIOUR_TYPE.WARRIOR:
+                UpdateWarrior();
+                break;
+            case BEHAVIOUR_TYPE.ARCHER:
+                UpdateArcher();
+                break;
+            case BEHAVIOUR_TYPE.BUILDER:
+                UpdateBuilder();
                 break;
         }
     }
@@ -100,6 +116,24 @@ class CharacterAnimator : MonoBehaviour
         animator.SetFloat("MoveSpeedY", velocity.y);
 
         animator.SetInteger("JumpState", jumpState);
+    }
+
+    void UpdateWarrior()
+    {
+        int state = behaviour.getState();
+        float stateTime = behaviour.getStateCompleteness();
+
+        // ~~ 
+    }
+
+    void UpdateArcher()
+    {
+
+    }
+
+    void UpdateBuilder()
+    {
+
     }
 }
 
