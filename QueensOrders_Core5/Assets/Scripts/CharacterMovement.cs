@@ -40,11 +40,12 @@ public class CharacterMovement : MonoBehaviour
 
 	public enum MovementMode{FREE, BATTLE, RUN};
 
-	public const int JUMPSTATE_ONGROUND 	= 0;
-	public const int JUMPSTATE_JUMPSTART 	= 1;
-	public const int JUMPSTATE_OFFGROUND 	= 2;
-	public const int JUMPSTATE_BACKTOGROUND = 3;
-	public const int JUMPSTATE_RECOVERED 	= 4;
+    public enum JumpState { JUMPSTATE_ONGROUND,
+                            JUMPSTATE_JUMPSTART,
+                            JUMPSTATE_OFFGROUND,
+                            JUMPSTATE_BACKTOGROUND,
+                            JUMPSTATE_RECOVERED
+                            }
 
 	// Curves
 	public AnimationCurve angleAccelFactor;	// Lower speed on high hills
@@ -84,10 +85,11 @@ public class CharacterMovement : MonoBehaviour
 	private float currentAccel; // Character acceleration changes when running/walking
 	private float currentMaxSpd; // Character acceleration changes when running/walking
 
+    private JumpState jumpState;
+
 	// Components
 	private CharacterController controller;
 	private CapsuleCollider body;
-	private Animator animator;
 
 	// Lock movement direction when starts to run
 	private bool isDirectionLocked = false;
@@ -113,7 +115,6 @@ public class CharacterMovement : MonoBehaviour
 		movementMode = MovementMode.FREE;
 		controller = GetComponent<CharacterController>();
 		body = GetComponent<CapsuleCollider>();
-		animator = GetComponent<Animator>();
 
 		currentAccel = accelFree;
 		currentMaxSpd = maxWalkingSpeed;
@@ -124,6 +125,14 @@ public class CharacterMovement : MonoBehaviour
 	public MovementMode getMovementState(){
 		return movementMode;
 	}
+
+    public JumpState getJumpState(){
+        return jumpState;
+    }
+
+    public Vector3 getVelocity(){
+        return velocity;
+    }
 
 	/* Send input command to character
 	 * \param r: true for KeyDown, false for KeyUp
@@ -225,9 +234,7 @@ public class CharacterMovement : MonoBehaviour
 	}
 
 	protected void OnJumpStart(){
-		animator.SetInteger("JumpState", JUMPSTATE_JUMPSTART);
-
-		// ~~ efeitos
+        // ~~ efeitos
 	}
 
 	protected void Jump(Vector3 groundNormal)
@@ -281,17 +288,18 @@ public class CharacterMovement : MonoBehaviour
 		if (jumpCD > 0)
 			jumpCD--;
 		
-		if (beforeJumpHoldCD > 0){
-			// mov = Vector3.zero;	// Avoid movement
+		if (beforeJumpHoldCD > 0)
+        {
+			// mov.Set(0,0,0);	// Avoid movement
 			beforeJumpHoldCD--;
-			if (beforeJumpHoldCD == 0){ // Finished recovering
-				animator.SetInteger("JumpState", JUMPSTATE_JUMPSTART);
+			if (beforeJumpHoldCD == 0){ // Jump begins
+                jumpState = JumpState.JUMPSTATE_JUMPSTART;
 			}
 		}
 		
 		// Do not move for a few frames after a jump
 		if (afterJumpHoldCD == afterJumpHold){
-			animator.SetInteger("JumpState", JUMPSTATE_BACKTOGROUND);
+            jumpState = JumpState.JUMPSTATE_BACKTOGROUND;
 		}
 		
 		if (afterJumpHoldCD > 0)
@@ -299,10 +307,10 @@ public class CharacterMovement : MonoBehaviour
 			mov.Set(0,0,0);	// Avoid movement
 			afterJumpHoldCD--;
 			if (afterJumpHoldCD == 0){ // Finished recovering
-				animator.SetInteger("JumpState", JUMPSTATE_RECOVERED);
+                jumpState = JumpState.JUMPSTATE_RECOVERED;
 			}
 		} else {
-			animator.SetInteger("JumpState", JUMPSTATE_ONGROUND);
+            jumpState = JumpState.JUMPSTATE_ONGROUND;
 		}
 	}
 	
@@ -374,7 +382,7 @@ public class CharacterMovement : MonoBehaviour
 			friction = velocity*frictionAir;
 			friction.y = 0;
 
-			animator.SetInteger("JumpState", JUMPSTATE_OFFGROUND);
+            jumpState = JumpState.JUMPSTATE_OFFGROUND;
 		}
 
 		Vector3 DO = transform.position+new Vector3(0, 1.5f, 0); // debug offset
@@ -391,32 +399,16 @@ public class CharacterMovement : MonoBehaviour
 		Vector3 velocityXZ = new Vector3 (velocity.x, 0.0f, velocity.z);
 
 		// Rotate character
-		if (movementMode == MovementMode.BATTLE)
+		if (movementMode != MovementMode.BATTLE)
 		{
-			animator.SetFloat("BattleStep", getBattleStep());
-
-			animator.SetFloat("StepXvel", Vector3.Project(velocityXZ.normalized, transform.right).magnitude);
-			animator.SetFloat("StepZvel", Vector3.Project(velocityXZ.normalized, transform.forward).magnitude);
-			//print("X:"+ Vector3.Project(velocityXZ.normalized, transform.right).magnitude 
-			//      + " Z:"+ Vector3.Project(velocityXZ.normalized, transform.forward).magnitude);
-
-		} else {
 			// Rotate - Character will look towards it's moving velocity
 			if (velocityXZ.magnitude > 0.1f){
 				desiredRotation = Quaternion.LookRotation(velocityXZ);
 			}
 		}
 		this.transform.rotation = Quaternion.RotateTowards(transform.rotation, desiredRotation, 10.0f);
-
-		float velocityXZmag = (new Vector3(velocity.x, 0, velocity.z)).magnitude;
-		// print(velocityXZmag);
-
-		// Update animator
-		animator.SetFloat("SpeedMagnitude", velocityXZmag);
-		animator.SetInteger("MovementMode", (int)movementMode);
-		animator.SetFloat("MoveSpeedXZ", velocityXZmag/maxRunningSpeed);
-		animator.SetFloat("MoveSpeedY", velocity.y);
 	}
+      
 
 
 }
