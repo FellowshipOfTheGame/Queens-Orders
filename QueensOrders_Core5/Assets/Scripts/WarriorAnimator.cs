@@ -1,14 +1,50 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿
+
+using System;
 using UnityEngine;
 
-class CharacterAnimator : MonoBehaviour
+/* 
+	ANIMATOR STATES
+
+	> JumpState (int): Define os estados de pulo.
+		0: Nao esta pulando.
+		1: Inicio do pulo (carregar pulo)
+		2: Fora do chao
+		3: Toca no chao
+		4: Termina de se recuperar -> frame seguinte passa para estado 0
+
+	> MovementMode (int): Define estado de movimento
+		0: Free
+		1: Battle
+		2: Run
+
+	> MoveSpeedXZ (float): Velocidade de movimento em XZ
+
+	> MoveSpeedY (float): Velocidade de movimento em Y
+
+	-- ONLY ON BATTLE --
+	> StepXvel (float): Indicates left/right movement
+		Left interval (-1, 0)
+		Right interval (0, 1)
+
+	> StepZvel: Indicates backward/forward movement
+		Backward interval (-1, 0)
+		Forward interval (0, 1)
+
+	> BattleStep (float): Tempo de um passo no modo batalha
+		0.0 [inicio] ~ 1.0 [meio] ~ 0.0 [fim]
+
+*/
+
+class WarriorAnimator : MonoBehaviour
 {
     private Animator animator;
     private CharacterMovement movement;
     private WarriorBehaviour behaviour;
+
+    private int ArmsLayer;
+
+    private float speedUp;
 
     void Start()
     {
@@ -34,19 +70,12 @@ class CharacterAnimator : MonoBehaviour
                 break;
         }
 
-        BEHAVIOUR_TYPE behaviourType = behaviour.getBehaviourType();
-        switch (behaviourType)
-        {
-            case BEHAVIOUR_TYPE.WARRIOR:
-                UpdateWarrior();
-                break;
-            case BEHAVIOUR_TYPE.ARCHER:
-                UpdateArcher();
-                break;
-            case BEHAVIOUR_TYPE.BUILDER:
-                UpdateBuilder();
-                break;
-        }
+        UpdateWarrior();    
+    }
+
+    public void SetLevel(int lvl)
+    {
+        speedUp = (float)lvl / (float)Character.MAX_LEVEL;
     }
 
     void UpdateBattle()
@@ -69,17 +98,17 @@ class CharacterAnimator : MonoBehaviour
         float stepYVel = projForward.magnitude * Mathf.Sign(projForward.z);
 
         // Send results to animator
-        animator.SetInteger("MovementMode", (int)CharacterMovement.MovementMode.FREE);
+        //animator.SetInteger("MovementMode", (int)CharacterMovement.MovementMode.FREE);
 
         animator.SetFloat("SpeedMagnitude", velocityXZ.magnitude);
-        animator.SetFloat("MoveSpeedXZ", velocityXZ.magnitude / maxXZspeed);
-        animator.SetFloat("MoveSpeedY", velocity.y);
-
-        animator.SetFloat("BattleStep", battleStep);
-        animator.SetFloat("StepXvel", stepXVel);
-        animator.SetFloat("StepZvel", stepYVel);
-
-        animator.SetInteger("JumpState", jumpState);
+        //animator.SetFloat("MoveSpeedXZ", velocityXZ.magnitude / maxXZspeed);
+        //animator.SetFloat("MoveSpeedY", velocity.y);
+        //
+        //animator.SetFloat("BattleStep", battleStep);
+        //animator.SetFloat("StepXvel", stepXVel);
+        //animator.SetFloat("StepZvel", stepYVel);
+        //
+        //animator.SetInteger("JumpState", jumpState);
     }
 
     void UpdateRun()
@@ -91,13 +120,12 @@ class CharacterAnimator : MonoBehaviour
         Vector2 velocityXZ = new Vector3(velocity.x, velocity.z);
 
         // Results
-        animator.SetInteger("MovementMode", (int)CharacterMovement.MovementMode.FREE);
+        // animator.SetInteger("MovementMode", (int)CharacterMovement.MovementMode.FREE);
 
         animator.SetFloat("SpeedMagnitude", velocityXZ.magnitude);
-        animator.SetFloat("MoveSpeedXZ", velocityXZ.magnitude / maxXZspeed);
-        animator.SetFloat("MoveSpeedY", velocity.y);
-
-        animator.SetInteger("JumpState", jumpState);
+        // animator.SetFloat("MoveSpeedXZ", velocityXZ.magnitude / maxXZspeed);
+        // animator.SetFloat("MoveSpeedY", velocity.y);
+        // animator.SetInteger("JumpState", jumpState);
     }
 
     void UpdateFree()
@@ -109,31 +137,28 @@ class CharacterAnimator : MonoBehaviour
         Vector2 velocityXZ = new Vector3(velocity.x, velocity.z);
 
         // Results
-        animator.SetInteger("MovementMode", (int)CharacterMovement.MovementMode.FREE);
+        //animator.SetInteger("MovementMode", (int)CharacterMovement.MovementMode.FREE);
 
         animator.SetFloat("SpeedMagnitude", velocityXZ.magnitude);
-        animator.SetFloat("MoveSpeedXZ", velocityXZ.magnitude / maxXZspeed);
-        animator.SetFloat("MoveSpeedY", velocity.y);
-
-        animator.SetInteger("JumpState", jumpState);
+        // animator.SetFloat("MoveSpeedXZ", velocityXZ.magnitude / maxXZspeed);
+        // animator.SetFloat("MoveSpeedY", velocity.y);
+        // animator.SetInteger("JumpState", jumpState);
     }
 
     void UpdateWarrior()
     {
         int state = behaviour.getState();
         float stateTime = behaviour.getStateCompleteness();
+        // print(state + ": " + stateTime);
+
+
+        // animator.Play(animationHashes[state], ArmsLayer, stateTime);
+        // animator.Play()
+        animator.SetInteger("CombatState", state);
+        animator.SetFloat("CombatStateTime", stateTime);
+        animator.SetFloat("CombatStateSpeedUp", speedUp);
 
         // ~~ 
-    }
-
-    void UpdateArcher()
-    {
-
-    }
-
-    void UpdateBuilder()
-    {
-
     }
 }
 

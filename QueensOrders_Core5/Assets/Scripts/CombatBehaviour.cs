@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using UnityEngine;
 
 public enum BEHAVIOUR_TYPE
 {
@@ -10,15 +7,15 @@ public enum BEHAVIOUR_TYPE
     BUILDER
 }
 
-interface CombatBehaviour
+public abstract class CombatBehaviour : MonoBehaviour
 {
-    int getState();
+    abstract public int getState();
 
-    BEHAVIOUR_TYPE getBehaviourType();
+    abstract public BEHAVIOUR_TYPE getBehaviourType();
 
-    float getStateCompleteness();
+    abstract public float getStateCompleteness();
 
-    void InputAttack1(bool state);
-    void InputAttack2(bool state);
+    abstract public void InputAttack1(bool state);
+    abstract public void InputAttack2(bool state);
 
 }

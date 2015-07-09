@@ -1,12 +1,17 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class WarriorBehaviour : MonoBehaviour, CombatBehaviour{
+public class WarriorBehaviour : CombatBehaviour{
 
     public enum COMBAT_STATE{
-        IDDLE,
-        BASIC_ATTACK1_CHARGING, BASIC_ATTACK1_WEAK, BASIC_ATTACK1_STRONG,
-        HOLDING_SHIELD
+        IDDLE = 0,
+        BASIC_ATTACK1_CHARGING = 1,
+        BASIC_ATTACK1_CHARGED = 2,
+        BASIC_ATTACK1_WEAK = 3,
+        BASIC_ATTACK1_STRONG = 4,
+        HOLDING_SHIELD = 5,
+
+        NUM_STATES
     };
 
     public enum INPUT_STATE{
@@ -16,37 +21,40 @@ public class WarriorBehaviour : MonoBehaviour, CombatBehaviour{
     }
 
 	// Time in frames
-	public int FullChargeBasicAttack1 = 60;
-	public int StrongAttackTimer = 80; // Tempo da animacao
-	public int WeakAttackTimer = 50; // Tempo da animacao
+    public int state1_Charging = 30;    // Frames to fully charge
+    public int state2_Charged = 0;
+	public int state3_WeakDuration = 40;
+	public int state4_StrongDuration = 80;
+	public int state5_ShieldUp = 50;
 
     public COMBAT_STATE state;
-	private float attackCharge;
 
     public INPUT_STATE input_attack1 = INPUT_STATE.NONE;
 	private bool input_defend;
 
+    //
 	private float animationTimer = 0;
 	private float animationTimerEnd = -1;
 
-    
-
-	// Components
-	Animator animator;
+    private int[] animationEnd = new int[(int)COMBAT_STATE.NUM_STATES+1]; // In frames
 
 	// Use this for initialization
 	WarriorBehaviour() {
 		state = 0;
-		attackCharge = 0;
 	}
 
 	public void Start(){
-		animator = GetComponent<Animator> ();
+        animationEnd[0] = 0;
+        animationEnd[1] = state1_Charging;
+        animationEnd[2] = state2_Charged;
+        animationEnd[3] = state3_WeakDuration;
+        animationEnd[4] = state4_StrongDuration;
+        animationEnd[5] = state5_ShieldUp;
 	}
 
 	/** Attack 1 - SWORD
 	 **/
-	public void InputAttack1(bool down){
+	public override void InputAttack1(bool down) {
 		if (down) {
             input_attack1 = INPUT_STATE.DOWN;
 		} else {
@@ -56,7 +64,7 @@ public class WarriorBehaviour : MonoBehaviour, CombatBehaviour{
 
     /** Attack 2 - SHIELD
      **/
-    public void InputAttack2(bool down)
+    public override void InputAttack2(bool down)
     {
         // TODO
     }
@@ -68,68 +76,70 @@ public class WarriorBehaviour : MonoBehaviour, CombatBehaviour{
 		HandleDefense ();
 	}
 
-    public int getState()
+    public override int getState()
     {
 		return (int)state;
 	}
 
-    public BEHAVIOUR_TYPE getBehaviourType(){
+    public override BEHAVIOUR_TYPE getBehaviourType()
+    {
         return BEHAVIOUR_TYPE.WARRIOR;
     }
 
-	public float getStateCompleteness(){
+    public override float getStateCompleteness()
+    {
+        if (animationTimerEnd == 0)
+            return 1.0f;
+
 		return animationTimer / animationTimerEnd;
 	}
 
 	void HandleAttack()
 	{
+        COMBAT_STATE statePrev = state;
+
         if (state == COMBAT_STATE.IDDLE && input_attack1 == INPUT_STATE.DOWN)
 		{
             state = COMBAT_STATE.BASIC_ATTACK1_CHARGING;
-			attackCharge = 0;
 			input_attack1 = 0;
-
-			animator.SetInteger("State", 1);
 		}
 
 		switch (state)
 		{
 			case COMBAT_STATE.BASIC_ATTACK1_CHARGING:
-				attackCharge++;
-			animator.SetFloat("AttackCharge", ((float)attackCharge)/FullChargeBasicAttack1);
+                animationTimer++;
+
+                if (animationTimer >= state1_Charging){
+                    state = COMBAT_STATE.BASIC_ATTACK1_CHARGED;
+                }
 
                 if (input_attack1 == INPUT_STATE.RELEASED)
-				{
-					if (attackCharge >= FullChargeBasicAttack1)
-					{
-						state = COMBAT_STATE.BASIC_ATTACK1_STRONG;
-						animationTimer = 0;
-						animationTimerEnd = StrongAttackTimer;
+                {
+                    if (state == COMBAT_STATE.BASIC_ATTACK1_CHARGED){
+                        state = COMBAT_STATE.BASIC_ATTACK1_STRONG;
+                    }else{
+                        state = COMBAT_STATE.BASIC_ATTACK1_WEAK;
+                    }
 
-						animator.SetInteger("State", 2);
-						GameObject.Find("Sword_MDL").transform.localScale = new Vector3(4,4,1.2f);
-					}
-					else
-					{
-						state = COMBAT_STATE.BASIC_ATTACK1_WEAK;
-						animationTimer = 0;
-						animationTimerEnd = WeakAttackTimer;
+                    input_attack1 = 0;
+                }
+            break;
 
-						animator.SetInteger("State", 2);
-						GameObject.Find("Sword_MDL").transform.localScale = new Vector3(1,1,1);
-					}
+            case COMBAT_STATE.BASIC_ATTACK1_CHARGED:
+                if (input_attack1 == INPUT_STATE.RELEASED)
+                {
+                    state = COMBAT_STATE.BASIC_ATTACK1_STRONG;
 
-					input_attack1 = 0;
-				}
+                    GameObject.Find("Sword_MDL").transform.localScale = new Vector3(4, 4, 1.2f);
+                
+                    input_attack1 = 0;
+                }
 			break;
 
 			case COMBAT_STATE.BASIC_ATTACK1_WEAK:
 				animationTimer++;
 				if (animationTimer >= animationTimerEnd){
 					state = COMBAT_STATE.IDDLE;
-
-					animator.SetInteger("State", 0);
-					animator.SetFloat("AttackCharge", 0);
 				}
 			break;
 
@@ -137,19 +147,23 @@ public class WarriorBehaviour : MonoBehaviour, CombatBehaviour{
 				animationTimer++;
 				if (animationTimer >= animationTimerEnd){
 					state = COMBAT_STATE.IDDLE;
+                    GameObject.Find("Sword_MDL").transform.localScale = new Vector3(1, 1, 1);
+                }
+            break;
+        }
 
-					animator.SetInteger("State", 0);
-					animator.SetFloat("AttackCharge", 0);
-					GameObject.Find("Sword_MDL").transform.localScale = new Vector3(1,1,1);
-				}
-			break;
+        if (statePrev != state)
+        {
+            Start();
+            animationTimer = 0;
+            animationTimerEnd = animationEnd[(int)state];
+        }
 
-		}
+    }
 
-	}
-
-	void HandleDefense(){
-		if (state < COMBAT_STATE.HOLDING_SHIELD || state > COMBAT_STATE.HOLDING_SHIELD)
-			return;
-	}
+    void HandleDefense()
+    {
+        if (state < COMBAT_STATE.HOLDING_SHIELD || state > COMBAT_STATE.HOLDING_SHIELD)
+            return;
+    }
 }

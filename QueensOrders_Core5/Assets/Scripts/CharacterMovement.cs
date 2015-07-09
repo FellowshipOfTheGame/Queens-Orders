@@ -1,39 +1,6 @@
 ﻿using UnityEngine;
 
 
-/* 
-	ANIMATOR STATES
-
-	> JumpState (int): Define os estados de pulo.
-		0: Nao esta pulando.
-		1: Inicio do pulo (carregar pulo)
-		2: Fora do chao
-		3: Toca no chao
-		4: Termina de se recuperar -> frame seguinte passa para estado 0
-
-	> MovementMode (int): Define estado de movimento
-		0: Free
-		1: Battle
-		2: Run
-
-	> MoveSpeedXZ (float): Velocidade de movimento em XZ
-
-	> MoveSpeedY (float): Velocidade de movimento em Y
-
-	-- ONLY ON BATTLE --
-	> StepXvel (float): Indicates left/right movement
-		Left interval (-1, 0)
-		Right interval (0, 1)
-
-	> StepZvel: Indicates backward/forward movement
-		Backward interval (-1, 0)
-		Forward interval (0, 1)
-
-	> BattleStep (float): Tempo de um passo no modo batalha
-		0.0 [inicio] ~ 1.0 [meio] ~ 0.0 [fim]
-
-*/
-
 public class CharacterMovement : MonoBehaviour
 {
 	private const float h = 0.01666666f; // DeltaTime
@@ -386,9 +353,9 @@ public class CharacterMovement : MonoBehaviour
 		}
 
 		Vector3 DO = transform.position+new Vector3(0, 1.5f, 0); // debug offset
-		Debug.DrawLine(DO, DO - friction, Color.red);
-		Debug.DrawLine(DO, DO + accelForce, Color.blue);
-		Debug.DrawLine(DO, DO + velocity, Color.green);
+		Debug.DrawLine(DO, DO - friction/10, Color.red);
+		Debug.DrawLine(DO, DO + accelForce/10, Color.blue);
+		Debug.DrawLine(DO, DO + velocity/10, Color.green);
 
 		// Apply friction
 		velocity = velocity + (accelForce-friction)/mass * h;
