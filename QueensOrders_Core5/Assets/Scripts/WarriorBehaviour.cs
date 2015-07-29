@@ -1,8 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class WarriorBehaviour : CombatBehaviour{
-
+public class WarriorBehaviour : MonoBehaviour, CombatBehaviour
+{
     public enum COMBAT_STATE{
         IDDLE = 0,
         BASIC_ATTACK1_CHARGING = 1,
@@ -38,23 +38,27 @@ public class WarriorBehaviour : CombatBehaviour{
 
     private int[] animationEnd = new int[(int)COMBAT_STATE.NUM_STATES+1]; // In frames
 
-	// Use this for initialization
-	WarriorBehaviour() {
-		state = 0;
-	}
-
-	public void Start(){
+    private void Init()
+    {
+        state = 0;
         animationEnd[0] = 0;
         animationEnd[1] = state1_Charging;
         animationEnd[2] = state2_Charged;
         animationEnd[3] = state3_WeakDuration;
         animationEnd[4] = state4_StrongDuration;
         animationEnd[5] = state5_ShieldUp;
-	}
+    }
 
+    /// OVERRIDES
+
+    public void Start()
+    {
+        Init();
+    }
+    
 	/** Attack 1 - SWORD
 	 **/
-	public override void InputAttack1(bool down) {
+	public void InputAttack1(bool down) {
 		if (down) {
             input_attack1 = INPUT_STATE.DOWN;
 		} else {
@@ -64,7 +68,7 @@ public class WarriorBehaviour : CombatBehaviour{
 
     /** Attack 2 - SHIELD
      **/
-    public override void InputAttack2(bool down)
+    public void InputAttack2(bool down)
     {
         // TODO
     }
@@ -76,23 +80,25 @@ public class WarriorBehaviour : CombatBehaviour{
 		HandleDefense ();
 	}
 
-    public override int getState()
+    public int getState()
     {
 		return (int)state;
 	}
 
-    public override BEHAVIOUR_TYPE getBehaviourType()
+    public BEHAVIOUR_TYPE getBehaviourType()
     {
         return BEHAVIOUR_TYPE.WARRIOR;
     }
 
-    public override float getStateCompleteness()
+    public float getStateCompleteness()
     {
         if (animationTimerEnd == 0)
             return 1.0f;
 
 		return animationTimer / animationTimerEnd;
 	}
+
+    // OVERRIDE END
 
 	void HandleAttack()
 	{
@@ -154,7 +160,7 @@ public class WarriorBehaviour : CombatBehaviour{
 
         if (statePrev != state)
         {
-            Start();
+            // Init();
             animationTimer = 0;
             animationTimerEnd = animationEnd[(int)state];
         }

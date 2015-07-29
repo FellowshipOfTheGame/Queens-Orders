@@ -1,7 +1,8 @@
 ﻿using UnityEngine;
 
 public class HeroCamera : MonoBehaviour {
-	public CharacterMovement TargetLookAt;
+	public GameObject TargetLookAt;
+
 	public Vector3 playerLookAtOffset = new Vector3(0,3,0);
 
 	private Vector3 currentLookAt;
@@ -34,13 +35,19 @@ public class HeroCamera : MonoBehaviour {
 	public float X_Smooth = 0.05f;
 	public float Y_Smooth = 0.1f;
 
+    private CharacterMovement charMovement;
+    private Transform charTransform;
+
 	void Start()
 	{
+        charMovement = TargetLookAt.GetComponent<CharacterMovement>();
+        charTransform = TargetLookAt.transform;
 		distance = Mathf.Clamp(distance, DistanceMin, DistanceMax);
 		startingDistance = distance;
-		Reset();
 
 		Cursor.lockState = CursorLockMode.Locked;
+
+		Reset();
 	}
 	
 	void LateUpdate()
@@ -72,7 +79,7 @@ public class HeroCamera : MonoBehaviour {
 		mouseX = Input.GetAxis("Mouse X") * X_MouseSensitivity;
 		mouseY = Input.GetAxis("Mouse Y") * Y_MouseSensitivity;
 
-		if ( TargetLookAt.getMovementState() == CharacterMovement.MovementMode.BATTLE )
+		if ( charMovement.getMovementMode() == MovementMode.BATTLE )
 			mouseX = Mathf.Clamp(mouseX, -X_MaxOnBattle, X_MaxOnBattle);
 		else //if (TargetLookAt.getMovementState () != PlayerMovement.MovementMode.RUN)
 			mouseX = Mathf.Clamp(mouseX, -X_MaxOnFree, X_MaxOnFree);
@@ -93,7 +100,7 @@ public class HeroCamera : MonoBehaviour {
 	
 	void CalculateDesiredPosition()
 	{
-		if (TargetLookAt.getMovementState () != CharacterMovement.MovementMode.RUN)
+        if (charMovement.getMovementMode() != MovementMode.RUN)
 		{
 			// Evaluate distance
 			distance = Mathf.SmoothDamp (distance, desiredDistance, ref velocityDistance, DistanceSmooth);
@@ -101,7 +108,7 @@ public class HeroCamera : MonoBehaviour {
 		}
 		else // if (TargetLookAt.getMovementState () == PlayerMovement.MovementMode.RUN)
 		{
-			X_Angle = ClampAngle(X_Angle, TargetLookAt.transform.rotation.eulerAngles.y-20, TargetLookAt.transform.rotation.eulerAngles.y+20);
+            X_Angle = ClampAngle(X_Angle, charTransform.rotation.eulerAngles.y - 20, charTransform.rotation.eulerAngles.y + 20);
 
 			// Evaluate distance
 			distance = Mathf.SmoothDamp (distance, desiredDistance, ref velocityDistance, DistanceSmooth*2);
@@ -115,7 +122,7 @@ public class HeroCamera : MonoBehaviour {
 		Vector3 direction = new Vector3(0, 0, -dist);
 		Quaternion rotation = Quaternion.Euler(rotationX, rotationY, 0);
 
-		currentLookAt = Vector3.Lerp(currentLookAt, TargetLookAt.transform.position+playerLookAtOffset, 0.2f);
+        currentLookAt = Vector3.Lerp(currentLookAt, charTransform.position + playerLookAtOffset, 0.2f);
 
 		return currentLookAt + (rotation * direction);
 	}
@@ -132,7 +139,8 @@ public class HeroCamera : MonoBehaviour {
 		mouseY = 10;
 		distance = startingDistance;
 		desiredDistance = distance;
-		currentLookAt = TargetLookAt.transform.position;
+
+        currentLookAt = charTransform.position;
 	}
 	
 	float ClampAngle(float angle, float min, float max)

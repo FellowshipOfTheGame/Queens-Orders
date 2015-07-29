@@ -36,36 +36,39 @@ using UnityEngine;
 
 */
 
-class WarriorAnimator : MonoBehaviour
+public class WarriorAnimator : MonoBehaviour, CharacterAnimator
 {
     private Animator animator;
-    private CharacterMovement movement;
+    private WarriorMovement movement;
     private WarriorBehaviour behaviour;
 
     private int ArmsLayer;
 
     private float speedUp;
 
-    void Start()
+
+    /// OVERRIDES
+    
+    public void Start()
     {
         animator = GetComponent<Animator>();
-        movement = GetComponent<CharacterMovement>();
+        movement = GetComponent<WarriorMovement>();
         behaviour = GetComponent<WarriorBehaviour>();
     }
 
-    void LateUpdate()
+    public void Update()
     {
-        CharacterMovement.MovementMode movementMode = movement.getMovementState();
+        MovementMode movementMode = movement.getMovementMode();
 
         switch (movementMode)
         {
-            case CharacterMovement.MovementMode.BATTLE:
+            case MovementMode.BATTLE:
                 UpdateBattle();
                 break;
-            case CharacterMovement.MovementMode.RUN:
+            case MovementMode.RUN:
                 UpdateRun();
                 break;
-            case CharacterMovement.MovementMode.FREE:
+            case MovementMode.FREE:
                 UpdateFree();
                 break;
         }
@@ -75,8 +78,10 @@ class WarriorAnimator : MonoBehaviour
 
     public void SetLevel(int lvl)
     {
-        speedUp = (float)lvl / (float)Character.MAX_LEVEL;
+        speedUp = 1; // (float)lvl / (float)Character.MAX_LEVEL;
     }
+
+    ///
 
     void UpdateBattle()
     {

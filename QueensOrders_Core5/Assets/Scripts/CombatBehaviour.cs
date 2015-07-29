@@ -7,15 +7,16 @@ public enum BEHAVIOUR_TYPE
     BUILDER
 }
 
-public abstract class CombatBehaviour : MonoBehaviour
+public interface CombatBehaviour
 {
-    abstract public int getState();
+    void Update();
 
-    abstract public BEHAVIOUR_TYPE getBehaviourType();
+    int getState();
 
-    abstract public float getStateCompleteness();
+    BEHAVIOUR_TYPE getBehaviourType();
 
-    abstract public void InputAttack1(bool state);
-    abstract public void InputAttack2(bool state);
+    float getStateCompleteness();
 
+    void InputAttack1(bool state);
+    void InputAttack2(bool state);
 }

@@ -2,15 +2,17 @@
 
 public class PlayerController : MonoBehaviour
 {
+    // private Character character;
 	private CharacterMovement movement;
-	private WarriorBehaviour behaviour;
+	private CombatBehaviour behaviour;
 
 	// Camera
 	public Transform myCamera;				// Used for 3rd person movement
 
 	public void Start(){
-		movement = GetComponent<CharacterMovement> ();
-		behaviour = GetComponent<WarriorBehaviour> ();
+        // character = GetComponent<Character>();
+        movement = GetComponent<CharacterMovement>();
+        behaviour = GetComponent<CombatBehaviour>();
 	}
 
 	public void Update()
@@ -35,10 +37,13 @@ public class PlayerController : MonoBehaviour
 
 		/* Enter combat mode DEBUG ONLY*/
 		if (Input.GetKeyDown(KeyCode.LeftControl)){
-			if (movement.getMovementState() == CharacterMovement.MovementMode.FREE){
+            if (movement.getMovementMode() == MovementMode.FREE)
+            {
 				movement.InputSetInBattleMode();
-			} else if (movement.getMovementState() == CharacterMovement.MovementMode.BATTLE){
-				movement.movementMode = CharacterMovement.MovementMode.FREE;
+            }
+            else if (movement.getMovementMode() == MovementMode.BATTLE)
+            {
+                movement.ForceMovementMode(MovementMode.FREE);
 			}
 		}
 
