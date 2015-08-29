@@ -33,7 +33,7 @@ public class WarriorMovement : MonoBehaviour, CharacterMovement
 	
 	// Private members
 	[Tooltip("DEBUG ONLY")]
-	public MovementMode movementMode; // TODO: Set as PRIVATE - public for debugging purpouses
+    public MovementMode movementMode; // TODO: Set as PRIVATE - public for debugging purpouses
 	[Tooltip("DEBUG ONLY")]
 	public Vector3 accelForce = Vector3.zero;
 	[Tooltip("DEBUG ONLY")]

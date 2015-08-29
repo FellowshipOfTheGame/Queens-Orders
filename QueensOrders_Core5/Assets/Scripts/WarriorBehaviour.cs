@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class WarriorBehaviour : MonoBehaviour, CombatBehaviour
+public class WarriorBehaviour : MonoBehaviour, CharacterBehaviour
 {
     public enum COMBAT_STATE{
         IDDLE = 0,
@@ -20,6 +20,8 @@ public class WarriorBehaviour : MonoBehaviour, CombatBehaviour
         RELEASED
     }
 
+    public GameObject equipHandR;
+
 	// Time in frames
     public int state1_Charging = 30;    // Frames to fully charge
     public int state2_Charged = 0;
@@ -30,11 +32,15 @@ public class WarriorBehaviour : MonoBehaviour, CombatBehaviour
     public COMBAT_STATE state;
 
     public INPUT_STATE input_attack1 = INPUT_STATE.NONE;
+    
 	private bool input_defend;
+
+    private GameObject weaponRight;
 
     //
 	private float animationTimer = 0;
 	private float animationTimerEnd = -1;
+    private Humanoid humanoid;
 
     private int[] animationEnd = new int[(int)COMBAT_STATE.NUM_STATES+1]; // In frames
 
@@ -54,6 +60,11 @@ public class WarriorBehaviour : MonoBehaviour, CombatBehaviour
     public void Start()
     {
         Init();
+
+        humanoid = GetComponent<Humanoid>();
+
+        weaponRight = (GameObject)GameObject.Instantiate(equipHandR);
+        weaponRight.transform.SetParent(humanoid.rightHand.transform, false);
     }
     
 	/** Attack 1 - SWORD
@@ -73,8 +84,7 @@ public class WarriorBehaviour : MonoBehaviour, CombatBehaviour
         // TODO
     }
 	
-	// Update is called once per frame
-	public void Update () {
+	public void FixedUpdate() {
 
 		HandleAttack ();
 		HandleDefense ();
@@ -100,18 +110,20 @@ public class WarriorBehaviour : MonoBehaviour, CombatBehaviour
 
     // OVERRIDE END
 
-	void HandleAttack()
+	private void HandleAttack()
 	{
         COMBAT_STATE statePrev = state;
 
-        if (state == COMBAT_STATE.IDDLE && input_attack1 == INPUT_STATE.DOWN)
+        switch (state)
 		{
-            state = COMBAT_STATE.BASIC_ATTACK1_CHARGING;
-			input_attack1 = 0;
-		}
+            case COMBAT_STATE.IDDLE:
+                if (input_attack1 == INPUT_STATE.DOWN)
+                {
+                    state = COMBAT_STATE.BASIC_ATTACK1_CHARGING;
+                    input_attack1 = 0;
+                }
+            break;
 
-		switch (state)
-		{
 			case COMBAT_STATE.BASIC_ATTACK1_CHARGING:
                 animationTimer++;
 
@@ -136,7 +148,7 @@ public class WarriorBehaviour : MonoBehaviour, CombatBehaviour
                 {
                     state = COMBAT_STATE.BASIC_ATTACK1_STRONG;
 
-                    GameObject.Find("Sword_MDL").transform.localScale = new Vector3(4, 4, 1.2f);
+                    weaponRight.transform.localScale = new Vector3(4, 4, 1.2f);
                 
                     input_attack1 = 0;
                 }
@@ -153,7 +165,7 @@ public class WarriorBehaviour : MonoBehaviour, CombatBehaviour
 				animationTimer++;
 				if (animationTimer >= animationTimerEnd){
 					state = COMBAT_STATE.IDDLE;
-                    GameObject.Find("Sword_MDL").transform.localScale = new Vector3(1, 1, 1);
+                    weaponRight.transform.localScale = new Vector3(1, 1, 1);
                 }
             break;
         }
@@ -167,7 +179,7 @@ public class WarriorBehaviour : MonoBehaviour, CombatBehaviour
 
     }
 
-    void HandleDefense()
+    private void HandleDefense()
     {
         if (state < COMBAT_STATE.HOLDING_SHIELD || state > COMBAT_STATE.HOLDING_SHIELD)
             return;

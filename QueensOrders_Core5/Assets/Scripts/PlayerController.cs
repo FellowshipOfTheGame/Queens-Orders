@@ -4,7 +4,7 @@ public class PlayerController : MonoBehaviour
 {
     // private Character character;
 	private CharacterMovement movement;
-	private CombatBehaviour behaviour;
+    private CharacterBehaviour behaviour;
 
 	// Camera
 	public Transform myCamera;				// Used for 3rd person movement
@@ -12,7 +12,7 @@ public class PlayerController : MonoBehaviour
 	public void Start(){
         // character = GetComponent<Character>();
         movement = GetComponent<CharacterMovement>();
-        behaviour = GetComponent<CombatBehaviour>();
+        behaviour = GetComponent<CharacterBehaviour>();
 	}
 
 	public void Update()

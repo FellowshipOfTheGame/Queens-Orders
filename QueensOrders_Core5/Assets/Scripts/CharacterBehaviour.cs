@@ -7,9 +7,9 @@ public enum BEHAVIOUR_TYPE
     BUILDER
 }
 
-public interface CombatBehaviour
+public interface CharacterBehaviour
 {
-    void Update();
+    void FixedUpdate();
 
     int getState();
 
