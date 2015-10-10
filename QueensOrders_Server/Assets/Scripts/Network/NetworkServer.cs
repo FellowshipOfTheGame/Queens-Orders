@@ -1,11 +1,16 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.Networking;
-using System.Runtime.Serialization.Formatters.Binary;
+using System.Collections.Generic;
 using System.IO;
 
-public abstract class NetworkClient : MonoBehaviour
+public interface NetworkEvent
 {
+
+}
+
+public abstract class NetworkServer : MonoBehaviour {
+
     //! Global Network Configuration
     [SerializeField]
     private GlobalConfig globalConfig;
@@ -16,11 +21,7 @@ public abstract class NetworkClient : MonoBehaviour
 
     //! Maximum connections
     [SerializeField]
-    private int maxConnections = 2;
-
-    //! Server IP
-    [SerializeField]
-    private string ip = "127.0.0.1";
+    private int maxConnections=32;
 
     //! Server port
     [SerializeField]
@@ -29,70 +30,16 @@ public abstract class NetworkClient : MonoBehaviour
     //! Connection Socket
     private int socket;
 
-    //! To host connection
-    private int toHostConnection;
-
-    private bool clientConnected = false;
+    private bool serverOpen = false;
 
     //! [Start]
     public virtual void Start()
     {
         DontDestroyOnLoad(gameObject);
 
-        // Create host topology from config
-        HostTopology ht = new HostTopology(this.connectionConfig, this.maxConnections);
-
         // Initialize Network
-        NetworkTransport.Init(this.globalConfig);
-
-        // Open socket
-        this.socket = NetworkTransport.AddHost(ht); // Client Socket
-        if (this.socket < 0)
-            Debug.LogError("Client socket creating failed!");
-        else
-            Debug.Log("Client socket creation successful!");
-
-
+        NetworkTransport.Init(globalConfig);
     }
-
-    public void setIp(string Ip)
-    {
-        ip = Ip;
-    }
-
-    public void setPort(int Port)
-    {
-        port = Port;
-    }
-
-    /// Connect to given ip and port
-    ///
-    /// \param Ip IP adress to connect to
-    /// \param Port port to use
-    public void Connect(string Ip, int Port)
-    {
-        ip = Ip;
-        port = Port;
-
-        Connect();
-    }
-
-    /// Connect on configured IP/Port
-    public void Connect()
-    {
-        // Connect to server
-        byte error;
-        toHostConnection = NetworkTransport.Connect(socket, ip, port, 0, out error);
-        LogNetworkError(error);
-    }
-
-    #region Recv Events
-    public abstract void OnConnectEvent(int recHostID, int recConnectionID, int recChannelID);
-
-    public abstract void OnDataEvent(int recHostID, int recConnectionID, int recChannelID, byte[] recData);
-
-    public abstract void OnDisconnectEvent(int recHostID, int recConnectionID, int recChannelID);
-    #endregion
 
     public virtual void Update()
     {
@@ -122,7 +69,6 @@ public abstract class NetworkClient : MonoBehaviour
 
                 // Client connected
                 case NetworkEventType.ConnectEvent:
-                    clientConnected = true;
                     OnConnectEvent(recConnectionID, recConnectionID, recChannelID);
                     break;
 
@@ -133,13 +79,49 @@ public abstract class NetworkClient : MonoBehaviour
 
                 // Client Disconnected
                 case NetworkEventType.DisconnectEvent:
-                    clientConnected = false;
                     OnDisconnectEvent(recConnectionID, recConnectionID, recChannelID);
+                    break;
+
+                default:
+                    Debug.Log("Unhandled network event: " + networkEvent.ToString());
                     break;
             }
 
         } while (networkEvent != NetworkEventType.Nothing);
     }
+
+    protected bool CreateServer()
+    {
+        HostTopology ht = new HostTopology(connectionConfig, maxConnections);
+
+        // Open socket
+        this.socket = NetworkTransport.AddHost(ht, port); // Server Socket
+        if (this.socket < 0)
+        {
+            Debug.LogError("Server socket creating failed!");
+            serverOpen = false;
+        }
+        else
+        {
+            Debug.Log("Server socket creation successful!");
+            serverOpen = true;
+        }
+
+        return serverOpen;
+    }
+
+    public bool IsServerOpen()
+    {
+        return serverOpen;
+    }
+
+    #region Recv Events
+    public abstract void OnConnectEvent(int recHostID, int recConnectionID, int recChannelID);
+
+    public abstract void OnDataEvent(int recHostID, int recConnectionID, int recChannelID, byte[] recData);
+
+    public abstract void OnDisconnectEvent(int recHostID, int recConnectionID, int recChannelID);
+    #endregion
 
     public void LogNetworkError(byte error)
     {
@@ -150,13 +132,13 @@ public abstract class NetworkClient : MonoBehaviour
         }
     }
 
-    public byte SendToServer(MemoryStream buffer)
+    public byte Send(int client, int channel, MemoryStream buffer)
     {
-        if (!clientConnected)
-            return (byte)NetworkError.WrongConnection;
+        if (buffer.Length <= 0)
+            return 0;
 
-        byte error;
-        NetworkTransport.Send(socket, toHostConnection, 0, buffer.ToArray(), (int)buffer.Length, out error);
+        byte error = 0;
+        NetworkTransport.Send(socket, client, channel, buffer.ToArray(), (int)buffer.Length, out error);
 
         return error;
     }

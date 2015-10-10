@@ -3,7 +3,7 @@ using System.Collections;
 using System;
 using System.IO;
 
-public class UnitSync : MonoBehaviour, SyncableObject
+public class UnitSyncS : MonoBehaviour, SyncableObject
 {
     [Flags]
     public enum BitMask
@@ -17,11 +17,16 @@ public class UnitSync : MonoBehaviour, SyncableObject
     }
 
     private int index; ///< Index on mailman vector
-    Transform transform;
+    private Transform m_transform;
+
+    public void SetPosition()
+    {
+        MailmanS.Instance().ObjectUpdated(this, index, (int)BitMask.Position);
+    }
 
     public void Start()
     {
-        transform = GetComponent<Transform>();
+        m_transform = GetComponent<Transform>();
 
         index = MailmanS.Instance().UnitCreated(this);
     }
@@ -36,9 +41,9 @@ public class UnitSync : MonoBehaviour, SyncableObject
         BitMask m = (BitMask)mask;
 
         if ((m & BitMask.Position) != 0)
-            DataWriter.WritePosition(buffer, transform.position);
+            DataWriter.WritePosition(buffer, m_transform.position);
         if ((m & BitMask.Rotation) != 0)
-            DataWriter.WriteQuaternion(buffer, transform.rotation);
+            DataWriter.WriteQuaternion(buffer, m_transform.rotation);
     }
 
     public void ReadFromBuffer(BinaryReader buffer, int mask)
@@ -46,9 +51,9 @@ public class UnitSync : MonoBehaviour, SyncableObject
         BitMask m = (BitMask)mask;
 
         if ((m & BitMask.Position) != 0)
-            transform.position = DataReader.ReadPosition(buffer);
+            m_transform.position = DataReader.ReadPosition(buffer);
         if ((m & BitMask.Rotation) != 0)
-            transform.rotation = DataReader.ReadQuaternion(buffer);
+            m_transform.rotation = DataReader.ReadQuaternion(buffer);
     }
 
     public int CalculateDataSize(int mask)

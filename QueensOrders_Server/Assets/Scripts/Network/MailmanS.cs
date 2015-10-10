@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 
 public class BitMap8 : List<byte> { };
 
@@ -10,16 +11,38 @@ public class MailmanS
     private List<SyncableObject> objectsToUpdate; ///< Objects that have changed
     private BitMap8 objectsBitMask; ///< Updated data bits for each object
 
-    public void Dispatch()
+    private MailmanS()
+    {
+        objects = new List<SyncableObject>();
+        objectsToUpdate = new List<SyncableObject>();
+        objectsBitMask = new BitMap8();
+    }
+
+    public void Dispatch(QOserver server)
     {
         //
+        MemoryStream stream = new MemoryStream();
+        BinaryWriter buffer = new BinaryWriter(stream);
+        foreach (SyncableObject s in objectsToUpdate)
+        {
+            byte mask = objectsBitMask[s.getIndex()];
+            
+            // header
+            buffer.Write((ushort) s.getIndex());
+            buffer.Write(mask);
 
+            // data
+            s.WriteToBuffer(buffer, mask);
+        }
+
+        server.BroadcastMessage(stream);
 
         // Clear masks after sending
         foreach (SyncableObject s in objectsToUpdate)
         {
             objectsBitMask[s.getIndex()] = 0;
         }
+        objectsToUpdate.Clear();
     }
 
     public static MailmanS Instance()
@@ -31,7 +54,7 @@ public class MailmanS
         return mailman;
     }
 
-    public int UnitCreated(UnitSync s)
+    public int UnitCreated(UnitSyncS s)
     {
         objects.Add(s);
         return objects.Count;
@@ -46,7 +69,7 @@ public class MailmanS
         }
 
         // Update the bitmask
-        objectsBitMask[index] |= (char)mask;
+        objectsBitMask[index] |= (byte)mask;
     }
 
 }

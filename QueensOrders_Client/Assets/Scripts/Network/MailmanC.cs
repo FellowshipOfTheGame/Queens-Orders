@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 
 public class BitMap8 : List<byte> { };
 
@@ -7,19 +8,28 @@ public class MailmanC
 {
     private static MailmanC mailman = null;
     private List<SyncableObject> objects; ///< All syncable objects in game
-    private List<SyncableObject> objectsToUpdate; ///< Objects that have changed
-    private BitMap8 objectsBitMask; ///< Updated data bits for each object
 
-    public void Dispatch()
+    private MailmanC()
+    {
+        objects = new List<SyncableObject>();
+    }
+
+    public void Fetch(MemoryStream stream)
     {
         //
+        BinaryReader reader = new BinaryReader(stream);
 
-
-        // Clear masks after sending
-        foreach (SyncableObject s in objectsToUpdate)
+        while (reader.PeekChar() >= 0)
         {
-            objectsBitMask[s.getIndex()] = 0;
+            ushort index = reader.ReadUInt16();
+            byte mask = reader.ReadByte();
+
+            if (index < objects.Count){
+                objects[index].ReadFromBuffer(reader, mask);
+            }
         }
+
+
     }
 
     public static MailmanC Instance()
@@ -35,18 +45,6 @@ public class MailmanC
     {
         objects.Add(s);
         return objects.Count;
-    }
-
-    public void ObjectUpdated(SyncableObject obj, int index, int mask)
-    {
-        // Add to list if not inserted yet
-        if (objectsBitMask[index] == 0)
-        {
-            objectsToUpdate.Add(obj);
-        }
-
-        // Update the bitmask
-        objectsBitMask[index] |= (byte)mask;
     }
 
 }

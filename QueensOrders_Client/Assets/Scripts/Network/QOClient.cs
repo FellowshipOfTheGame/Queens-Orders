@@ -3,6 +3,25 @@ using System.Collections;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 
+#if UNITY_EDITOR
+using UnityEditor;
+
+[CustomEditor(typeof(QOClient))]
+public class NetworkClientEditor : Editor
+{
+    public override void OnInspectorGUI()
+    {
+        DrawDefaultInspector();
+
+        QOClient myScript = (QOClient)target;
+        if (GUILayout.Button("Connect!"))
+        {
+            myScript.Connect();
+        }
+    }
+}
+#endif
+
 public class QOClient : NetworkClient 
 {
     private static QOClient client = null;
@@ -38,6 +57,7 @@ public class QOClient : NetworkClient
         {
             GetComponent<Transform>().position = Vector3.zero;
         }
+
     }
 
     #region Recv Events
@@ -49,13 +69,15 @@ public class QOClient : NetworkClient
     public override void OnDataEvent(int recHostID, int recConnectionID, int recChannelID, byte[] recData)
     {
         // Decoding Message
-        Stream stream = new MemoryStream(recData);
-        BinaryFormatter f = new BinaryFormatter();
+        MemoryStream stream = new MemoryStream(recData);
+
+        MailmanC.Instance().Fetch(stream);
+
+        /*BinaryFormatter f = new BinaryFormatter();
         string msg = f.Deserialize(stream).ToString();
 
-        Debug.Log("Client: Received Data from " + recConnectionID.ToString() + "! Message: " + msg);
-
-        GetComponent<Transform>().position += Vector3.right;
+         */
+        Debug.Log("Client: Received Data from " + recConnectionID.ToString());
     }
 
     public override void OnDisconnectEvent(int recHostID, int recConnectionID, int recChannelID)
