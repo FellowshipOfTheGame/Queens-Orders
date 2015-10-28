@@ -4,6 +4,31 @@ using UnityEngine.Networking;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
 
+public class MessageIdentifier
+{
+    public byte id;
+    public int channel;
+
+    public MessageIdentifier(byte _id, int _channel)
+    {
+        id = _id;
+        channel = _channel;
+    }
+
+    public BinaryWriter CreateMessage()
+    {
+        BinaryWriter bw = new BinaryWriter(new MemoryStream(32));
+        bw.Write(id);
+        return bw;
+    }
+
+    public BinaryWriter CreateMessage(BinaryWriter on)
+    {
+        on.Write(id);
+        return on;
+    }
+}
+
 public abstract class NetworkClient : MonoBehaviour
 {
     //! Global Network Configuration
@@ -34,6 +59,13 @@ public abstract class NetworkClient : MonoBehaviour
 
     private bool clientConnected = false;
 
+
+    // DELEGATES
+    // \return Returns if the msg is incomplete
+    public delegate bool OnMessage(BinaryReader reader, int size);
+    private OnMessage[,] onMessageReceivers = new OnMessage[2, 256];
+
+
     //! [Start]
     public virtual void Start()
     {
@@ -51,8 +83,11 @@ public abstract class NetworkClient : MonoBehaviour
             Debug.LogError("Client socket creating failed!");
         else
             Debug.Log("Client socket creation successful!");
+    }
 
-
+    public void RegisterMsgIDReceiver(int channel, int id, OnMessage d)
+    {
+        onMessageReceivers[channel, id] = d;
     }
 
     public void setIp(string Ip)
@@ -88,8 +123,6 @@ public abstract class NetworkClient : MonoBehaviour
 
     #region Recv Events
     public abstract void OnConnectEvent(int recHostID, int recConnectionID, int recChannelID);
-
-    public abstract void OnDataEvent(int recHostID, int recConnectionID, int recChannelID, byte[] recData);
 
     public abstract void OnDisconnectEvent(int recHostID, int recConnectionID, int recChannelID);
     #endregion
@@ -128,7 +161,7 @@ public abstract class NetworkClient : MonoBehaviour
 
                 // Data Event
                 case NetworkEventType.DataEvent:
-                    OnDataEvent(recConnectionID, recConnectionID, recChannelID, buffer);
+                    OnDataEvent(recConnectionID, recConnectionID, recChannelID, buffer, recDataSize);
                     break;
 
                 // Client Disconnected
@@ -161,4 +194,16 @@ public abstract class NetworkClient : MonoBehaviour
         return error;
     }
 
+
+    private void OnDataEvent(int recHostID, int recConnectionID, int recChannelID, byte[] recData, int size)
+    {
+        // Decoding Message
+        BinaryReader reader = new BinaryReader(new MemoryStream(recData, 0, size));
+        byte msgID = reader.ReadByte();
+
+        Debug.Log(recChannelID + " Id: " + msgID + " Size: "+size);
+
+        if (onMessageReceivers[recChannelID, msgID] != null)
+            onMessageReceivers[recChannelID, msgID](reader, size);
+    }
 }

@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using System.Collections;
 
 using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
@@ -8,14 +7,14 @@ using System.Collections.Generic;
 #if UNITY_EDITOR
 using UnityEditor;
 
-[CustomEditor(typeof(QOserver))]
+[CustomEditor(typeof(QOServer))]
 public class NetworkClientEditor : Editor
 {
     public override void OnInspectorGUI()
     {
         DrawDefaultInspector();
 
-        QOserver myScript = (QOserver)target;
+        QOServer myScript = (QOServer)target;
         if (GUILayout.Button("Host!"))
         {
             myScript.StartServer();
@@ -31,7 +30,7 @@ enum ServerState {
     GAME,
 };
 
-public class QOserver : NetworkServer 
+public class QOServer : NetworkServer 
 {
     private ServerState serverState;
     private List<int> clientsConnection;
@@ -42,6 +41,7 @@ public class QOserver : NetworkServer
 
         serverState = ServerState.NOT_ONLINE;
         clientsConnection = new List<int>();
+     
     }
 
     public bool StartServer()
@@ -59,6 +59,7 @@ public class QOserver : NetworkServer
 
         //TODO: remove this - DEBUG
         serverState = ServerState.GAME;
+        MailmanS.Instance().RegisterToNetwork(this);
 
         return true;
     }
@@ -88,18 +89,6 @@ public class QOserver : NetworkServer
         clientsConnection.Add(recConnectionID);
     }
 
-    public override void OnDataEvent(int recHostID, int recConnectionID, int recChannelID, byte[] recData)
-    {
-        // Decoding Message
-        Stream stream = new MemoryStream(recData);
-        BinaryFormatter f = new BinaryFormatter();
-        string msg = f.Deserialize(stream).ToString();
-
-        Debug.Log("Server: Received Data from " + recConnectionID.ToString() + "! Message: " + msg);
-
-        GetComponent<Transform>().position += Vector3.right;
-    }
-
     public override void OnDisconnectEvent(int recHostID, int recConnectionID, int recChannelID)
     {
         Debug.Log("Server: Received disconnect from " + recConnectionID.ToString());
@@ -122,12 +111,8 @@ public class QOserver : NetworkServer
         }
     }
 
-    public void BroadcastMessage(MemoryStream stream)
+    public void SendToPlayer(int playerConnID, int channel, MemoryStream stream)
     {
-        for (int i = 0; i < clientsConnection.Count; i++)
-        {
-            byte error = Send(clientsConnection[i], 0, stream);
-            LogNetworkError(error);
-        }
+        Send(playerConnID, channel, stream);
     }
 }

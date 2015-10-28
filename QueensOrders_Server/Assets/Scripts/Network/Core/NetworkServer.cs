@@ -4,9 +4,29 @@ using UnityEngine.Networking;
 using System.Collections.Generic;
 using System.IO;
 
-public interface NetworkEvent
+public class MessageIdentifier
 {
+    public byte id;
+    public int channel;
 
+    public MessageIdentifier(byte _id, int _channel)
+    {
+        id = _id;
+        channel = _channel;
+    }
+
+    public BinaryWriter CreateMessage()
+    {
+        BinaryWriter bw = new BinaryWriter(new MemoryStream(128));
+        bw.Write(id);
+        return bw;
+    }
+
+    public BinaryWriter CreateMessage(BinaryWriter on)
+    {
+        on.Write(id);
+        return on;
+    }
 }
 
 public abstract class NetworkServer : MonoBehaviour {
@@ -32,6 +52,12 @@ public abstract class NetworkServer : MonoBehaviour {
 
     private bool serverOpen = false;
 
+    // DELEGATES
+    // \return Returns if the msg is incomplete
+    public delegate bool OnMessage(BinaryReader reader, int size);
+    private OnMessage[,] onMessageReceivers = new OnMessage[2,256];
+    //
+
     //! [Start]
     public virtual void Start()
     {
@@ -39,6 +65,11 @@ public abstract class NetworkServer : MonoBehaviour {
 
         // Initialize Network
         NetworkTransport.Init(globalConfig);
+    }
+
+    public void RegisterMsgIDReceiver(int channel, int id, OnMessage d)
+    {
+        onMessageReceivers[channel, id] = d;
     }
 
     public virtual void Update()
@@ -118,8 +149,6 @@ public abstract class NetworkServer : MonoBehaviour {
     #region Recv Events
     public abstract void OnConnectEvent(int recHostID, int recConnectionID, int recChannelID);
 
-    public abstract void OnDataEvent(int recHostID, int recConnectionID, int recChannelID, byte[] recData);
-
     public abstract void OnDisconnectEvent(int recHostID, int recConnectionID, int recChannelID);
     #endregion
 
@@ -131,8 +160,8 @@ public abstract class NetworkServer : MonoBehaviour {
             Debug.Log("Error: " + nerror.ToString());
         }
     }
-
-    public byte Send(int client, int channel, MemoryStream buffer)
+    
+    protected byte Send(int client, int channel, MemoryStream buffer)
     {
         if (buffer.Length <= 0)
             return 0;
@@ -140,7 +169,22 @@ public abstract class NetworkServer : MonoBehaviour {
         byte error = 0;
         NetworkTransport.Send(socket, client, channel, buffer.ToArray(), (int)buffer.Length, out error);
 
+        Debug.Log("Sending  "+buffer.Length+" bytes "+error);
+
         return error;
+    }
+
+
+    /// On receiving data
+    /// Read the first byte and calls the corresponding ID handler.
+    private void OnDataEvent(int recHostID, int recConnectionID, int recChannelID, byte[] recData)
+    {
+        // Decoding Message
+        BinaryReader reader = new BinaryReader(new MemoryStream(recData));
+        byte msgID = reader.ReadByte();
+
+        if (onMessageReceivers[recChannelID, msgID] != null)
+            onMessageReceivers[recChannelID, msgID](reader, recData.Length);
     }
 
 }

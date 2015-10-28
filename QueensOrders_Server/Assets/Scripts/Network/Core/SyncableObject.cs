@@ -7,6 +7,8 @@ public interface SyncableObject {
 
     void WriteToBuffer(BinaryWriter buffer, int mask);
 
+    void WriteToBuffer(BinaryWriter buffer, int mask, int mode);
+
     void ReadFromBuffer(BinaryReader buffer, int mask);
 
     int CalculateDataSize(int mask);

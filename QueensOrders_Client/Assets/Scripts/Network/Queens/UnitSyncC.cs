@@ -5,8 +5,16 @@ using System.IO;
 
 public class UnitSyncC : MonoBehaviour, SyncableObject
 {
+    #region ENUMS
+    public enum UnitType
+    {
+        Warrior,
+        Archer,
+        Builder
+    }
+
     [Flags]
-    public enum BitMask
+    public enum BitMask : byte
     {
         Position = 1,
         Rotation = 2,
@@ -15,15 +23,33 @@ public class UnitSyncC : MonoBehaviour, SyncableObject
         Team = 8,
         HP = 16,
     }
+    #endregion
 
-    private int index; ///< Index on mailman vector
+    public static UnitSyncC CreateUnit(UnitType type, int index)
+    {
+        switch (type)
+        {
+            case UnitType.Warrior:
+                GameObject g = Instantiate(GameData.FindObjectOfType<GameData>().Warrior);
+                UnitSyncC comp = g.GetComponent<UnitSyncC>();
+                comp.index = index;
+                return comp;
+        }
+
+        return null;
+    }
+
+
+    ///
+    /// 
+    /// 
+
+    private int index = -1; ///< Index on mailman vector
     Transform m_transform;
 
     public void Start()
     {
         m_transform = GetComponent<Transform>();
-
-        index = MailmanC.Instance().UnitCreated(this);
     }
 
     public int getIndex()

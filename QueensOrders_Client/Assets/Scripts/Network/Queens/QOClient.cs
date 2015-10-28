@@ -41,6 +41,8 @@ public class QOClient : NetworkClient
         base.Start();
 
         client = this;
+
+        MailmanC.Instance().RegisterToNetwork(this);
 	}
 
     // Update is called once per frame
@@ -64,20 +66,6 @@ public class QOClient : NetworkClient
     public override void OnConnectEvent(int recHostID, int recConnectionID, int recChannelID)
     {
         Debug.Log("Client: Client connected to " + recConnectionID.ToString() + "!");
-    }
-
-    public override void OnDataEvent(int recHostID, int recConnectionID, int recChannelID, byte[] recData)
-    {
-        // Decoding Message
-        MemoryStream stream = new MemoryStream(recData);
-
-        MailmanC.Instance().Fetch(stream);
-
-        /*BinaryFormatter f = new BinaryFormatter();
-        string msg = f.Deserialize(stream).ToString();
-
-         */
-        Debug.Log("Client: Received Data from " + recConnectionID.ToString());
     }
 
     public override void OnDisconnectEvent(int recHostID, int recConnectionID, int recChannelID)
