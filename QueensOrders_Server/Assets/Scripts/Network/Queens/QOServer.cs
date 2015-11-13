@@ -32,15 +32,33 @@ enum ServerState {
 
 public class QOServer : NetworkServer 
 {
-    private ServerState serverState;
-    private List<int> clientsConnection;
+    public class Client{
+        public Client(int _id) {
+            id = _id;
+            ping = 0;
+        }
 
+        public readonly int id;
+        double ping;
+    }
+
+    private ServerState serverState;
+    private List<Client> clientList;
+
+
+    /// GET
+    public List<Client> getClientList() //TODO: return a readonly
+    {
+        return clientList;
+    }
+
+    ///
     public override void Start()
     {
         base.Start();
 
         serverState = ServerState.NOT_ONLINE;
-        clientsConnection = new List<int>();
+        clientList = new List<Client>();
      
     }
 
@@ -68,10 +86,10 @@ public class QOServer : NetworkServer
     {
         base.Update();
 
-        if (Input.GetKeyDown(KeyCode.Space))
+        /*if (Input.GetKeyDown(KeyCode.Space))
         {
             BroadcastMsg();
-        }
+        }*/
 
         if (IsServerOpen())
         {
@@ -86,7 +104,7 @@ public class QOServer : NetworkServer
     public override void OnConnectEvent(int recHostID, int recConnectionID, int recChannelID)
     {
         Debug.Log("Server: Player " + recConnectionID.ToString() + " connected!");
-        clientsConnection.Add(recConnectionID);
+        clientList.Add(new Client(recConnectionID));
     }
 
     public override void OnDisconnectEvent(int recHostID, int recConnectionID, int recChannelID)
@@ -95,7 +113,8 @@ public class QOServer : NetworkServer
     }
     #endregion
 
-    public void BroadcastMsg()
+    // Debug, not in use
+    /*public void BroadcastMsg()
     {
         // Send the server a message
         byte error;
@@ -109,10 +128,10 @@ public class QOServer : NetworkServer
             error = Send(clientsConnection[i], 0, stream);
             LogNetworkError(error);
         }
-    }
+    }*/
 
-    public void SendToPlayer(int playerConnID, int channel, MemoryStream stream)
+    public void SendToPlayer(int playerID, MessageToSend msg)
     {
-        Send(playerConnID, channel, stream);
+        Send(playerID, msg);
     }
 }

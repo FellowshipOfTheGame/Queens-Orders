@@ -1,33 +1,6 @@
 ﻿using UnityEngine;
-using System.Collections;
 using UnityEngine.Networking;
-using System.Collections.Generic;
 using System.IO;
-
-public class MessageIdentifier
-{
-    public byte id;
-    public int channel;
-
-    public MessageIdentifier(byte _id, int _channel)
-    {
-        id = _id;
-        channel = _channel;
-    }
-
-    public BinaryWriter CreateMessage()
-    {
-        BinaryWriter bw = new BinaryWriter(new MemoryStream(128));
-        bw.Write(id);
-        return bw;
-    }
-
-    public BinaryWriter CreateMessage(BinaryWriter on)
-    {
-        on.Write(id);
-        return on;
-    }
-}
 
 public abstract class NetworkServer : MonoBehaviour {
 
@@ -36,6 +9,8 @@ public abstract class NetworkServer : MonoBehaviour {
     private GlobalConfig globalConfig;
 
     //! Channel Configuration
+    //! Do not EVER change number of channels!
+    //! Only by Inspector GUI of PREFAB!
     [SerializeField]
     private ConnectionConfig connectionConfig;
 
@@ -55,9 +30,10 @@ public abstract class NetworkServer : MonoBehaviour {
     // DELEGATES
     // \return Returns if the msg is incomplete
     public delegate bool OnMessage(BinaryReader reader, int size);
-    private OnMessage[,] onMessageReceivers = new OnMessage[2,256];
+    private OnMessage[,] onMessageReceivers = null;
     //
 
+    
     //! [Start]
     public virtual void Start()
     {
@@ -65,11 +41,16 @@ public abstract class NetworkServer : MonoBehaviour {
 
         // Initialize Network
         NetworkTransport.Init(globalConfig);
+
+        onMessageReceivers = new OnMessage[connectionConfig.ChannelCount, 256];
     }
 
-    public void RegisterMsgIDReceiver(int channel, int id, OnMessage d)
+    public void RegisterMsgIDReceiver(MessageIdentifier id, OnMessage d)
     {
-        onMessageReceivers[channel, id] = d;
+        if (id.channel < connectionConfig.ChannelCount)
+            onMessageReceivers[id.channel, id.id] = d;
+        else
+            throw new System.Exception("Invalid channel");
     }
 
     public virtual void Update()
@@ -78,7 +59,7 @@ public abstract class NetworkServer : MonoBehaviour {
         int recConnectionID;
         int recChannelID;
         int recDataSize;
-        byte[] buffer = new byte[1024];
+        byte[] buffer = new byte[2048];
         byte error;
 
         NetworkEventType networkEvent = NetworkEventType.DataEvent;
@@ -161,19 +142,20 @@ public abstract class NetworkServer : MonoBehaviour {
         }
     }
     
-    protected byte Send(int client, int channel, MemoryStream buffer)
+    protected byte Send(int client, MessageToSend message)
     {
+        byte error = 0;
+
+        MemoryStream buffer = (MemoryStream)message.w.BaseStream;
         if (buffer.Length <= 0)
             return 0;
 
-        byte error = 0;
-        NetworkTransport.Send(socket, client, channel, buffer.ToArray(), (int)buffer.Length, out error);
+        NetworkTransport.Send(socket, client, message.id.channel,  buffer.ToArray(), (int)buffer.Length, out error);
 
         Debug.Log("Sending  "+buffer.Length+" bytes "+error);
 
         return error;
     }
-
 
     /// On receiving data
     /// Read the first byte and calls the corresponding ID handler.
