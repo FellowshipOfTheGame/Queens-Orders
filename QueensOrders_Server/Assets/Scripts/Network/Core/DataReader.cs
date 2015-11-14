@@ -4,7 +4,7 @@ using System.IO;
 
 public class DataReader {
 
-    public static Vector3 ReadPosition(BinaryReader buffer)
+    public static Vector3 ReadVector3(BinaryReader buffer)
     {
         float x = buffer.ReadSingle();
         float y = buffer.ReadSingle();

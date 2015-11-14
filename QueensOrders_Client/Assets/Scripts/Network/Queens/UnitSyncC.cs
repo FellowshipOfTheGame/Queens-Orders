@@ -6,9 +6,11 @@ using System.IO;
 public class UnitSyncC : MonoBehaviour, SyncableObject
 {
     #region ENUMS
+    public const int UNIT_SYNC_TYPE = 1;
+
     public enum UnitType
     {
-        Warrior,
+        Warrior = 0,
         Archer,
         Builder
     }
@@ -25,9 +27,9 @@ public class UnitSyncC : MonoBehaviour, SyncableObject
     }
     #endregion
 
-    public static UnitSyncC CreateUnit(UnitType type, int index)
+    public static UnitSyncC CreateNew(int index, byte type)
     {
-        switch (type)
+        switch ((UnitType)type)
         {
             case UnitType.Warrior:
                 GameObject g = Instantiate(GameData.FindObjectOfType<GameData>().Warrior);
@@ -57,22 +59,22 @@ public class UnitSyncC : MonoBehaviour, SyncableObject
         return index;
     }
 
-    public void WriteToBuffer(BinaryWriter buffer, int mask)
+    public void WriteToBuffer(BinaryWriter buffer, int mask, int mode)
     {
         BitMask m = (BitMask)mask;
 
         if ((m & BitMask.Position) != 0)
-            DataWriter.WritePosition(buffer, m_transform.position);
+            DataWriter.WriteVector3(buffer, m_transform.position);
         if ((m & BitMask.Rotation) != 0)
             DataWriter.WriteQuaternion(buffer, m_transform.rotation);
     }
 
-    public void ReadFromBuffer(BinaryReader buffer, int mask)
+    public void ReadFromBuffer(BinaryReader buffer, int mask, int mode)
     {
         BitMask m = (BitMask)mask;
 
         if ((m & BitMask.Position) != 0)
-            transform.position = DataReader.ReadPosition(buffer);
+            transform.position = DataReader.ReadVector3(buffer);
         if ((m & BitMask.Rotation) != 0)
             transform.rotation = DataReader.ReadQuaternion(buffer);
     }
@@ -83,7 +85,7 @@ public class UnitSyncC : MonoBehaviour, SyncableObject
         BitMask m = (BitMask)mask;
 
         if ((m & BitMask.Position) != 0)
-            s += DataWriter.PositionSize();
+            s += DataWriter.Vector3Size();
         if ((m & BitMask.Rotation) != 0)
             s += DataWriter.QuaternionSize();
 

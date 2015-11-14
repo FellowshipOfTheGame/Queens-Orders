@@ -4,7 +4,7 @@ using System.IO;
 
 public class DataWriter 
 {
-    public static int PositionSize(){
+    public static int Vector3Size(){
         return sizeof(float) * 3;
     }
 
@@ -12,7 +12,7 @@ public class DataWriter
         return sizeof(float) * 4;
     }
 
-    public static void WritePosition(BinaryWriter buffer, Vector3 pos)
+    public static void WriteVector3(BinaryWriter buffer, Vector3 pos)
     {
         buffer.Write(pos.x);
         buffer.Write(pos.y);

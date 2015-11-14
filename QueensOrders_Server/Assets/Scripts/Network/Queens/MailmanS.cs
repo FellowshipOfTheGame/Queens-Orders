@@ -78,29 +78,53 @@ public class MailmanS
             int work = 0; // 0 = done nothing, 1 = unreliable only, 2 = reliable only, 3 = both
             foreach (SyncableObject s in objectsToUpdate)
             {
-                byte mask = objectsBitMask[s.getIndex()];
+                int index = s.getIndex();
+                byte mask = objectsBitMask[index];
                 SendMode mode = objectsModeBitMask[s.getIndex()];
+                ushort datasize = s.CalculateDataSize(mask, (int)mode);
+
+                if (datasize == 0)
+                    continue;
 
                 if ((mode & SendMode.RELIABLE) > 0)
                 {
                     work |= 2;
-                    // header
-                    msgImportant.w.Write((ushort)s.getIndex());
+                    msgImportant.w.Write((ushort)index);
                     msgImportant.w.Write((byte)mode);
                     msgImportant.w.Write((byte)mask);
+                    if ((mode & SendMode.Created) > 0)
+                    {
+                        msgImportant.w.Write((byte)s.getSyncableType());
+                    }
+                    msgImportant.w.Write((ushort)datasize);
 
+                    long bufferBeginI = msgImportant.w.BaseStream.Position;
+                    
                     // data
                     s.WriteToBuffer(msgImportant.w, (int)mask, (int)mode);
+
+                    long bufferEnd = msgImportant.w.BaseStream.Position;
+
+                    UnityEngine.Debug.Log(index + " begin: " + bufferBeginI + " End: " + bufferEnd + " datasize: " + datasize);
+                    UnityEngine.Assertions.Assert.IsTrue((bufferEnd - bufferBeginI) == datasize);
                 }
                 else if ((mode & SendMode.UNRELIABLE) > 0)
                 {
                     work |= 1;
-                    // header
-                    msgGeneral.w.Write((ushort)s.getIndex());
+                    msgGeneral.w.Write((ushort)index);
+                    msgGeneral.w.Write((byte)mode);
                     msgGeneral.w.Write((byte)mask);
+                    msgGeneral.w.Write((ushort)datasize);
 
+                    long bufferBeginG = msgGeneral.w.BaseStream.Position;
+                    
                     // data
-                    s.WriteToBuffer(msgGeneral.w, (int)mask);
+                    s.WriteToBuffer(msgGeneral.w, (int)mask, (int)mode);
+
+                    long bufferEnd = msgGeneral.w.BaseStream.Position;
+
+                    UnityEngine.Debug.Log(index + " begin: " + bufferBeginG + " End: " + bufferEnd + " datasize: " + datasize);
+                    UnityEngine.Assertions.Assert.IsTrue((bufferEnd - bufferBeginG) == datasize);
                 }
             }
 

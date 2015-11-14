@@ -53,7 +53,7 @@ public abstract class NetworkServer : MonoBehaviour {
             throw new System.Exception("Invalid channel");
     }
 
-    public virtual void Update()
+    public virtual void LateUpdate()
     {
         int recHostID;
         int recConnectionID;

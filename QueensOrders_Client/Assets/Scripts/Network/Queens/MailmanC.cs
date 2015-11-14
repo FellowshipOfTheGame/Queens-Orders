@@ -76,11 +76,24 @@ public class MailmanC
 
         while (reader.PeekChar() >= 0)
         {
+            UnityEngine.Debug.Log("reading...");
             ushort index = reader.ReadUInt16();
+            UnityEngine.Debug.Log("Index: " + index);
+            SendMode mode = (SendMode)reader.ReadByte();
+            UnityEngine.Debug.Log("mode: " + mode);
             byte mask = reader.ReadByte();
+            UnityEngine.Debug.Log("mask: " + mask);
+            ushort msgDataSize = reader.ReadUInt16();
+            UnityEngine.Debug.Log("data size: " + msgDataSize);
 
             if (index < objects.Count){
-                objects[index].ReadFromBuffer(reader, mask);
+                if (objects[index] != null)
+                {
+                    objects[index].ReadFromBuffer(reader, mask, (int)mode);
+                } else {
+                    // ignore message data
+                    reader.ReadBytes(msgDataSize);
+                }
             }
         }
 
@@ -95,18 +108,40 @@ public class MailmanC
         {
             UnityEngine.Debug.Log("reading...");
             ushort index = reader.ReadUInt16();
-            UnityEngine.Debug.Log("Index: "+index);
+            UnityEngine.Debug.Log("Index: " + index);
             SendMode mode = (SendMode)reader.ReadByte();
             UnityEngine.Debug.Log("mode: " + mode);
             byte mask = reader.ReadByte();
             UnityEngine.Debug.Log("mask: " + mask);
 
+            byte createdType = 0;
+
             if ((mode & SendMode.Created) > 0)
             {
-                UnitSyncC.UnitType type = (UnitSyncC.UnitType)reader.ReadByte();
+                createdType = reader.ReadByte();
+            }
 
-                UnitSyncC comp = UnitSyncC.CreateUnit(type, index);
-                UnitCreated(comp, index);
+            ushort msgDataSize = reader.ReadUInt16();
+            UnityEngine.Debug.Log("data size: " + msgDataSize);
+
+            // Process data
+            if ((mode & SendMode.Created) > 0)
+            { 
+                switch (createdType)
+                {
+                    case UnitSyncC.UNIT_SYNC_TYPE:
+                        {
+                            byte unitType = reader.ReadByte();
+                            UnitSyncC comp = UnitSyncC.CreateNew(index, unitType);
+                            SyncableCreated(comp, index);
+                        }
+                    break;
+
+                    case ArrowSyncC_BHV.ARROW_SYNC_TYPE:
+                        ArrowSyncC_BHV o = ArrowSyncC_BHV.CreateNew(index);
+                        SyncableCreated(o, index);
+                    break;
+                }
             }
 
             if ((mode & SendMode.Destroy) > 0)
@@ -123,7 +158,10 @@ public class MailmanC
             {
                 if (index < objects.Count && objects[index] != null)
                 {
-                    objects[index].ReadFromBuffer(reader, mask);
+                    objects[index].ReadFromBuffer(reader, mask, (int)mode);
+                } else {
+                    // ignore message data
+                    reader.ReadBytes(msgDataSize);
                 }
             }
             UnityEngine.Debug.Log("one ok");
@@ -132,7 +170,7 @@ public class MailmanC
         return true;
     }
 
-    private int UnitCreated(UnitSyncC s, int index)
+    private void SyncableCreated(SyncableObject s, int index)
     {
         // Resize list
         while (objects.Count <= index)
@@ -141,7 +179,6 @@ public class MailmanC
         UnityEngine.Assertions.Assert.IsTrue(objects[index] == null);
 
         objects[index] = s;
-        return objects.Count;
     }
 
 }

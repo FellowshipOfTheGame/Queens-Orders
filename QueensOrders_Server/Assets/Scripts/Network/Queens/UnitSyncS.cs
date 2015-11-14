@@ -26,9 +26,11 @@ public class UnitSyncSEditor : Editor
 public class UnitSyncS : MonoBehaviour, SyncableObject
 {
     #region ENUMS
+    public const int UNIT_SYNC_TYPE = 1;
+
     public enum UnitType
     {
-        Warrior,
+        Warrior = 0,
         Archer,
         Builder
     }
@@ -48,8 +50,8 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
     public static int UnitCreated(UnitSyncS u)
     {
         return MailmanS.Instance().SyncableObjectCreated(u, 
-                (byte)(UnitSyncS.BitMask.Position | UnitSyncS.BitMask.Rotation), 
-                MailmanS.SendMode.UpdateRel
+                (byte)(UnitSyncS.BitMask.Position | UnitSyncS.BitMask.Rotation),
+                MailmanS.SendMode.Created | MailmanS.SendMode.UpdateRel
             );
     }
 
@@ -81,21 +83,16 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
         return index;
     }
 
+    public int getSyncableType()
+    {
+        return UNIT_SYNC_TYPE;
+    }
+
     public UnitType getUnitType()
     {
         return unitType;
     }
-
-    public void WriteToBuffer(BinaryWriter buffer, int mask)
-    {
-        BitMask m = (BitMask)mask;
-
-        if ((m & BitMask.Position) != 0)
-            DataWriter.WritePosition(buffer, m_transform.position);
-        if ((m & BitMask.Rotation) != 0)
-            DataWriter.WriteQuaternion(buffer, m_transform.rotation);
-    }
-
+    
     public void WriteToBuffer(BinaryWriter buffer, int mask, int mode)
     {
         BitMask m = (BitMask)mask;
@@ -107,7 +104,7 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
         if ((smode & MailmanS.SendMode.UpdateRel) > 0)
         {
             if ((m & BitMask.Position) != 0)
-                DataWriter.WritePosition(buffer, m_transform.position);
+                DataWriter.WriteVector3(buffer, m_transform.position);
             if ((m & BitMask.Rotation) != 0)
                 DataWriter.WriteQuaternion(buffer, m_transform.rotation);
         }
@@ -118,22 +115,26 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
         BitMask m = (BitMask)mask;
 
         if ((m & BitMask.Position) != 0)
-            m_transform.position = DataReader.ReadPosition(buffer);
+            m_transform.position = DataReader.ReadVector3(buffer);
         if ((m & BitMask.Rotation) != 0)
             m_transform.rotation = DataReader.ReadQuaternion(buffer);
     }
 
-    public int CalculateDataSize(int mask)
+    public ushort CalculateDataSize(int mask, int mode)
     {
         int s = 0;
         BitMask m = (BitMask)mask;
+        MailmanS.SendMode smode = (MailmanS.SendMode)mode;
+
+        if ((smode & MailmanS.SendMode.Created) > 0)
+            s += sizeof(byte);
 
         if ((m & BitMask.Position) != 0)
-            s += DataWriter.PositionSize();
+            s += DataWriter.Vector3Size();
         if ((m & BitMask.Rotation) != 0)
             s += DataWriter.QuaternionSize();
 
-        return s;
+        return (ushort)s;
     }
 
 }

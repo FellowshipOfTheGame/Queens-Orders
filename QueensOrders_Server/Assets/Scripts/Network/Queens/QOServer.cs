@@ -82,9 +82,9 @@ public class QOServer : NetworkServer
         return true;
     }
 
-    public override void Update()
+    public override void LateUpdate()
     {
-        base.Update();
+        base.LateUpdate();
 
         /*if (Input.GetKeyDown(KeyCode.Space))
         {
@@ -112,24 +112,7 @@ public class QOServer : NetworkServer
         Debug.Log("Server: Received disconnect from " + recConnectionID.ToString());
     }
     #endregion
-
-    // Debug, not in use
-    /*public void BroadcastMsg()
-    {
-        // Send the server a message
-        byte error;
-        byte[] buffer = new byte[1024];
-        MemoryStream stream = new MemoryStream(buffer);
-        BinaryFormatter f = new BinaryFormatter();
-        f.Serialize(stream, "Hello!");
-
-        for (int i = 0; i < clientsConnection.Count; i++)
-        {
-            error = Send(clientsConnection[i], 0, stream);
-            LogNetworkError(error);
-        }
-    }*/
-
+    
     public void SendToPlayer(int playerID, MessageToSend msg)
     {
         Send(playerID, msg);
