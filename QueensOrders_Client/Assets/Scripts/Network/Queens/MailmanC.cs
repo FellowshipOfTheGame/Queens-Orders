@@ -76,17 +76,18 @@ public class MailmanC
 
     private bool FetchUpdate(BinaryReader reader, int size)
     {
+        UnityEngine.Debug.Log("[Unreliable] Receive syncable obj!!!");
         while (reader.PeekChar() >= 0)
         {
-            UnityEngine.Debug.Log("reading...");
+            //UnityEngine.Debug.Log("reading...");
             ushort index = reader.ReadUInt16();
-            UnityEngine.Debug.Log("Index: " + index);
+            //UnityEngine.Debug.Log("Index: " + index);
             SendMode mode = (SendMode)reader.ReadByte();
-            UnityEngine.Debug.Log("mode: " + mode);
+            //UnityEngine.Debug.Log("mode: " + mode);
             byte mask = reader.ReadByte();
-            UnityEngine.Debug.Log("mask: " + mask);
+            //UnityEngine.Debug.Log("mask: " + mask);
             ushort msgDataSize = reader.ReadUInt16();
-            UnityEngine.Debug.Log("data size: " + msgDataSize);
+            //UnityEngine.Debug.Log("data size: " + msgDataSize);
 
             if (index < objects.Count){
                 if (objects[index] != null)
@@ -104,17 +105,17 @@ public class MailmanC
 
     private bool FetchReliable(BinaryReader reader, int size)
     {
-        UnityEngine.Debug.Log("Receive syncable obj!!!");
+        UnityEngine.Debug.Log("[Reliable] Receive syncable obj!!!");
 
         while (reader.PeekChar() >= 0)
         {
-            UnityEngine.Debug.Log("reading...");
+            //UnityEngine.Debug.Log("reading...");
             ushort index = reader.ReadUInt16();
-            UnityEngine.Debug.Log("Index: " + index);
+            //UnityEngine.Debug.Log("Index: " + index);
             SendMode mode = (SendMode)reader.ReadByte();
-            UnityEngine.Debug.Log("mode: " + mode);
+            //UnityEngine.Debug.Log("mode: " + mode);
             byte mask = reader.ReadByte();
-            UnityEngine.Debug.Log("mask: " + mask);
+            //UnityEngine.Debug.Log("mask: " + mask);
 
             byte createdType = 0;
 
@@ -124,7 +125,7 @@ public class MailmanC
             }
 
             ushort msgDataSize = reader.ReadUInt16();
-            UnityEngine.Debug.Log("data size: " + msgDataSize);
+            //UnityEngine.Debug.Log("data size: " + msgDataSize);
 
             // Process data
             if ((mode & SendMode.Created) > 0)
@@ -144,28 +145,6 @@ public class MailmanC
                     reader.ReadBytes(msgDataSize);
                 }
             }
-
-            /*if ((mode & SendMode.Destroy) > 0)
-            {
-                // Destroy object
-            }
-            
-            if ((mode & SendMode.Hide) > 0)
-            {
-                // Hide object
-            }
-
-            if ((mode & SendMode.UpdateRel) > 0)
-            {
-                if (index < objects.Count && objects[index] != null)
-                {
-                    objects[index].ReadFromBuffer(reader, mode, mask);
-                } else {
-                    // ignore message data
-                    reader.ReadBytes(msgDataSize);
-                }
-            }*/
-            UnityEngine.Debug.Log("one ok");
         }
 
         return true;

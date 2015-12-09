@@ -5,7 +5,7 @@ using System.IO;
 
 public class ArrowSyncC_BHV : MonoBehaviour, SyncableObject{
 
-    public const int ARROW_SYNC_TYPE = 2;
+    public const int SYNC_TYPE = 2;
 
     int index = -1;
 
@@ -24,7 +24,7 @@ public class ArrowSyncC_BHV : MonoBehaviour, SyncableObject{
         ArrowSyncC_BHV comp = g.GetComponent<ArrowSyncC_BHV>();
         comp.index = index;
         comp.realObj = g.GetComponent<ArrowC_BHV>();
-
+        comp.realObj.initialized = true;
         return comp;
     }
 
@@ -66,14 +66,4 @@ public class ArrowSyncC_BHV : MonoBehaviour, SyncableObject{
     {
         // do nothing
     }
-
-    // Use this for initialization
-    void Start () {
-        
-    }
-	
-	// Update is called once per frame
-	void Update () {
-	
-	}
 }

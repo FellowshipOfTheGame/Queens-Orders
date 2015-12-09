@@ -26,7 +26,7 @@ public class UnitSyncSEditor : Editor
 public class UnitSyncS : MonoBehaviour, SyncableObject
 {
     #region ENUMS
-    public const int UNIT_SYNC_TYPE = 1;
+    public const int SYNC_TYPE = 1;
 
     public enum UnitType
     {
@@ -85,7 +85,7 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
 
     public int getSyncableType()
     {
-        return UNIT_SYNC_TYPE;
+        return SYNC_TYPE;
     }
 
     public UnitType getUnitType()

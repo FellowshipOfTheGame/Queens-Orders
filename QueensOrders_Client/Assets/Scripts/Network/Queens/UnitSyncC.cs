@@ -6,7 +6,7 @@ using System.IO;
 public class UnitSyncC : MonoBehaviour, SyncableObject
 {
     #region ENUMS
-    public const int UNIT_SYNC_TYPE = 1;
+    public const int SYNC_TYPE = 1;
 
     public enum UnitType
     {

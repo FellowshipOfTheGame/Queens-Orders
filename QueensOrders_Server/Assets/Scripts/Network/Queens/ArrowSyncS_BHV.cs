@@ -4,8 +4,8 @@ using System.IO;
 
 public class ArrowSyncS_BHV : MonoBehaviour, SyncableObject{
 
-    public const int ARROW_SYNC_TYPE = 2;
-    public const int STEPS_UNTIL_UPDATE = 50;
+    public const int SYNC_TYPE = 2;
+    public const int STEPS_UNTIL_UPDATE = 50; // in frames
     
 
     private int index; ///< Index on mailman vector
@@ -23,11 +23,6 @@ public class ArrowSyncS_BHV : MonoBehaviour, SyncableObject{
         index = Created(this);
         Debug.Log("Unity id: " + index);
     }
-	
-	// Update is called once per frame
-	void Update () {
-	
-	}
 
     public void SetPosition(Vector3 pos, Vector3 vel)
     {
@@ -40,7 +35,7 @@ public class ArrowSyncS_BHV : MonoBehaviour, SyncableObject{
             updateCounter = 0;
         }
     }
-
+    
     public int getIndex()
     {
         return index;
@@ -48,7 +43,7 @@ public class ArrowSyncS_BHV : MonoBehaviour, SyncableObject{
 
     public int getSyncableType()
     {
-        return ARROW_SYNC_TYPE;
+        return SYNC_TYPE;
     }
     
     public void WriteToBuffer(BinaryWriter buffer, SendMode mode, int mask)

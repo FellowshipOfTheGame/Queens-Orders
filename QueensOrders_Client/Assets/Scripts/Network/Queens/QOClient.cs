@@ -44,8 +44,8 @@ public class QOClient : NetworkClient
 
         MailmanC mailman = MailmanC.Instance();
         mailman.RegisterToNetwork(this);
-        mailman.RegisterSyncable(UnitSyncC.UNIT_SYNC_TYPE, UnitSyncC.CreateSyncableFromMessage);
-        mailman.RegisterSyncable(ArrowSyncC_BHV.ARROW_SYNC_TYPE, ArrowSyncC_BHV.CreateSyncableFromMessage);
+        mailman.RegisterSyncable(UnitSyncC.SYNC_TYPE, UnitSyncC.CreateSyncableFromMessage);
+        mailman.RegisterSyncable(ArrowSyncC_BHV.SYNC_TYPE, ArrowSyncC_BHV.CreateSyncableFromMessage);
     }
 
     // Update is called once per frame

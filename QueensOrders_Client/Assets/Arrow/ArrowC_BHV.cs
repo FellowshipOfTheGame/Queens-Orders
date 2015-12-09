@@ -10,16 +10,20 @@ public class ArrowC_BHV : MonoBehaviour {
 	public Vector3 Position;
 	public Vector3 Velocity;
 
+    public bool initialized = false;
 	private bool Stuck = false;
 	private ArrowSyncC_BHV Syncker;
 
 	// Use this for initialization
-	void Start () {
-
-		Position = transform.position;
-		Velocity = transform.forward*StartingSpeed;
+	void Start ()
+    {
 		Syncker = GetComponent <ArrowSyncC_BHV> ();
 
+        if (!initialized)
+        {
+            Position = transform.position;
+            Velocity = transform.forward * StartingSpeed;
+        }
 	}
 	
 	// Update is called once per frame

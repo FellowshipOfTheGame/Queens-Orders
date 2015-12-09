@@ -58,6 +58,7 @@ public class MailmanS
         public void Dispatch(QOServer server) ///TODO: Remove from this class
         {
             UnityEngine.Debug.Log("Dispatch");
+            long sentObjs = 0;
             //
             MessageToSend msgGeneral = SEND_GENERAL_UPDATE.CreateMessage();
             MessageToSend msgImportant = SEND_IMPORTANT_UPDATE.CreateMessage();
@@ -94,6 +95,8 @@ public class MailmanS
 
                     UnityEngine.Debug.Log(index + " begin: " + bufferBeginI + " End: " + bufferEnd + " datasize: " + datasize);
                     UnityEngine.Assertions.Assert.IsTrue((bufferEnd - bufferBeginI) == datasize);
+
+                    sentObjs++;
                 }
                 else if ((mode & SendMode.UNRELIABLE) > 0)
                 {
@@ -112,12 +115,14 @@ public class MailmanS
 
                     UnityEngine.Debug.Log(index + " begin: " + bufferBeginG + " End: " + bufferEnd + " datasize: " + datasize);
                     UnityEngine.Assertions.Assert.IsTrue((bufferEnd - bufferBeginG) == datasize);
+
+                    sentObjs++;
                 }
             }
 
             if (work > 0)
             {
-                UnityEngine.Debug.Log("UNIT Sent!");
+                UnityEngine.Debug.Log("Sent update for "+sentObjs+" syncables!");
 
                 List<QOServer.Client> clients = server.getClientList();
                 if ((work & 2) > 0)
