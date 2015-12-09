@@ -15,8 +15,7 @@ public class ArrowSyncS_BHV : MonoBehaviour, SyncableObject{
 
     public static int Created(ArrowSyncS_BHV u)
     {
-        return MailmanS.Instance().SyncableObjectCreated(u, 0xff, 
-            MailmanS.SendMode.Created | MailmanS.SendMode.UpdateRel );
+        return MailmanS.Instance().SyncableObjectCreated(u, SendMode.Created | SendMode.UpdateRel, 0xff);
     }
 
     // Use this for initialization
@@ -37,7 +36,7 @@ public class ArrowSyncS_BHV : MonoBehaviour, SyncableObject{
 
         if (++updateCounter == STEPS_UNTIL_UPDATE)
         {
-            MailmanS.Instance().ObjectUpdated(this, 0xff, MailmanS.SendMode.UNRELIABLE);
+            MailmanS.Instance().ObjectUpdated(this, SendMode.UNRELIABLE, 0xff);
             updateCounter = 0;
         }
     }
@@ -52,10 +51,8 @@ public class ArrowSyncS_BHV : MonoBehaviour, SyncableObject{
         return ARROW_SYNC_TYPE;
     }
     
-    public void WriteToBuffer(BinaryWriter buffer, int mask, int mode)
+    public void WriteToBuffer(BinaryWriter buffer, SendMode mode, int mask)
     {
-        MailmanS.SendMode smode = (MailmanS.SendMode)mode;
-
         DataWriter.WriteVector3(buffer, position);
         DataWriter.WriteVector3(buffer, velocity);
     }
@@ -65,7 +62,7 @@ public class ArrowSyncS_BHV : MonoBehaviour, SyncableObject{
         
     }
 
-    public ushort CalculateDataSize(int mask, int mode)
+    public ushort CalculateDataSize(SendMode mode, int mask)
     {
         int s = 0;
 

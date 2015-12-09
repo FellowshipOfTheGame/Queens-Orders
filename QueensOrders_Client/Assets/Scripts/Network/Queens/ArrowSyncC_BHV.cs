@@ -11,7 +11,14 @@ public class ArrowSyncC_BHV : MonoBehaviour, SyncableObject{
 
     ArrowC_BHV realObj;
 
-    public static ArrowSyncC_BHV CreateNew(int index)
+    public static SyncableObject CreateSyncableFromMessage(int index, SendMode mode, int mask, BinaryReader reader)
+    {
+        SyncableObject obj = CreateNew(index);
+        obj.ReadFromBuffer(reader, mode, mask);
+        return obj;
+    }
+
+    protected static ArrowSyncC_BHV CreateNew(int index)
     {
         GameObject g = Instantiate(GameData.FindObjectOfType<GameData>().Arrow);
         ArrowSyncC_BHV comp = g.GetComponent<ArrowSyncC_BHV>();
@@ -32,7 +39,7 @@ public class ArrowSyncC_BHV : MonoBehaviour, SyncableObject{
         return index;
     }
 
-    public void ReadFromBuffer(BinaryReader buffer, int mask, int mode)
+    public void ReadFromBuffer(BinaryReader buffer, SendMode mode, int mask)
     {
         float ping = 16/1000;
         RaycastHit Hit;
@@ -55,7 +62,7 @@ public class ArrowSyncC_BHV : MonoBehaviour, SyncableObject{
         realObj.Velocity = newv;
     }
 
-    public void WriteToBuffer(BinaryWriter buffer, int mask, int mode)
+    public void WriteToBuffer(BinaryWriter buffer, SendMode mode, int mask)
     {
         // do nothing
     }

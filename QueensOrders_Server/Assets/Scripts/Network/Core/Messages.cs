@@ -17,10 +17,10 @@ public class MessageIdentifier
     public readonly byte id;
     public readonly int channel;
 
-    public MessageIdentifier(byte _id, int _channel)
+    public MessageIdentifier(int _channel, byte _id)
     {
-        id = _id;
         channel = _channel;
+        id = _id;
     }
 
     public MessageToSend CreateMessage()

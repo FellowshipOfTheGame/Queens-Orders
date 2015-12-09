@@ -9,10 +9,10 @@ public class MessageIdentifier
     public byte id;
     public int channel;
 
-    public MessageIdentifier(byte _id, int _channel)
+    public MessageIdentifier(int _channel, byte _id)
     {
-        id = _id;
         channel = _channel;
+        id = _id;
     }
 
     public BinaryWriter CreateMessage()
@@ -85,9 +85,20 @@ public abstract class NetworkClient : MonoBehaviour
             Debug.Log("Client socket creation successful!");
     }
 
-    public void RegisterMsgIDReceiver(int channel, int id, OnMessage d)
+    public void RegisterMsgIDReceiver(MessageIdentifier id, OnMessage d)
     {
-        onMessageReceivers[channel, id] = d;
+        if (id.channel < connectionConfig.ChannelCount)
+        {
+            if (onMessageReceivers[id.channel, id.id] != null)
+            {
+                throw new UnityException("Can't assign multiple receivers to the same message id on the same channel [channel: " + id.channel + ", id: " + id.id + "]");
+            }
+            onMessageReceivers[id.channel, id.id] = d;
+        }
+        else
+        {
+            throw new System.Exception("Invalid channel");
+        }
     }
 
     public void setIp(string Ip)

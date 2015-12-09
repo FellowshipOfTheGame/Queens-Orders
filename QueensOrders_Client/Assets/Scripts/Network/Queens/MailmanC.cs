@@ -19,23 +19,6 @@ using System.IO;
 /// </summary>
 public class MailmanC
 {
-    public enum SendMode : byte
-    {
-        NotChanged = 0,
-
-        // UNRELIABLE
-        Updated = 1,
-
-        // RELIABLE
-        Destroy = 2,
-        Hide = 4,
-        Created = 8,
-        UpdateRel = 16,
-
-        UNRELIABLE = Updated,
-        RELIABLE = Destroy | Hide | Created | UpdateRel,
-    }
-
     public static MailmanC Instance()
     {
         if (mailman == null)
@@ -48,10 +31,17 @@ public class MailmanC
 
     private static MailmanC mailman = null;
 
+    // Messages
+    public static MessageIdentifier RECEIVE_GENERAL_UPDATE = new MessageIdentifier(0, 1);
+    public static MessageIdentifier RECEIVE_IMPORTANT_UPDATE = new MessageIdentifier(1, 1);
+
     ///
     ///
     ///
 
+    public delegate SyncableObject CreateSyncableFromMessage(int index, SendMode mode, int mask, BinaryReader reader);
+
+    private List<CreateSyncableFromMessage> createFromMessage;
     private List<SyncableObject> objects; ///< All syncable objects in game
 
         
@@ -59,6 +49,7 @@ public class MailmanC
     private MailmanC()
     {
         objects = new List<SyncableObject>();
+        createFromMessage = new List<CreateSyncableFromMessage>();
     }
 
     /// Register this Mailman to given network client
@@ -67,13 +58,24 @@ public class MailmanC
     /// \param network The network client to self assign to
     public void RegisterToNetwork(NetworkClient network)
     {
-        network.RegisterMsgIDReceiver(0, 1, FetchUpdate);
-        network.RegisterMsgIDReceiver(1, 1, FetchReliable);
+        network.RegisterMsgIDReceiver(RECEIVE_GENERAL_UPDATE, FetchUpdate);
+        network.RegisterMsgIDReceiver(RECEIVE_IMPORTANT_UPDATE, FetchReliable);
+    }
+
+    public void RegisterSyncable(int id, CreateSyncableFromMessage cfm)
+    {
+        while (createFromMessage.Count <= id)
+            createFromMessage.Add(null);
+
+        if (createFromMessage[id] != null)
+        {
+            throw new System.Exception("More than one Syncable with the same ID");
+        }
+        createFromMessage[id] = cfm;
     }
 
     private bool FetchUpdate(BinaryReader reader, int size)
     {
-
         while (reader.PeekChar() >= 0)
         {
             UnityEngine.Debug.Log("reading...");
@@ -89,7 +91,7 @@ public class MailmanC
             if (index < objects.Count){
                 if (objects[index] != null)
                 {
-                    objects[index].ReadFromBuffer(reader, mask, (int)mode);
+                    objects[index].ReadFromBuffer(reader, mode, mask);
                 } else {
                     // ignore message data
                     reader.ReadBytes(msgDataSize);
@@ -126,29 +128,28 @@ public class MailmanC
 
             // Process data
             if ((mode & SendMode.Created) > 0)
-            { 
-                switch (createdType)
+            {
+                SyncableObject comp = createFromMessage[createdType](index, mode, mask, reader);
+                SyncableCreated(comp, index);
+            }
+            else
+            {
+                if (index < objects.Count && objects[index] != null)
                 {
-                    case UnitSyncC.UNIT_SYNC_TYPE:
-                        {
-                            byte unitType = reader.ReadByte();
-                            UnitSyncC comp = UnitSyncC.CreateNew(index, unitType);
-                            SyncableCreated(comp, index);
-                        }
-                    break;
-
-                    case ArrowSyncC_BHV.ARROW_SYNC_TYPE:
-                        ArrowSyncC_BHV o = ArrowSyncC_BHV.CreateNew(index);
-                        SyncableCreated(o, index);
-                    break;
+                    objects[index].ReadFromBuffer(reader, mode, mask);
+                }
+                else
+                {
+                    // ignore message data
+                    reader.ReadBytes(msgDataSize);
                 }
             }
 
-            if ((mode & SendMode.Destroy) > 0)
+            /*if ((mode & SendMode.Destroy) > 0)
             {
                 // Destroy object
             }
-
+            
             if ((mode & SendMode.Hide) > 0)
             {
                 // Hide object
@@ -158,12 +159,12 @@ public class MailmanC
             {
                 if (index < objects.Count && objects[index] != null)
                 {
-                    objects[index].ReadFromBuffer(reader, mask, (int)mode);
+                    objects[index].ReadFromBuffer(reader, mode, mask);
                 } else {
                     // ignore message data
                     reader.ReadBytes(msgDataSize);
                 }
-            }
+            }*/
             UnityEngine.Debug.Log("one ok");
         }
 

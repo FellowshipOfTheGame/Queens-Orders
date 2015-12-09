@@ -17,7 +17,7 @@ public class UnitSyncSEditor : Editor
         if (GUILayout.Button("DIRTY!"))
         {
             Debug.Log("Dirty " + myScript.getIndex());
-            MailmanS.Instance().ObjectUpdated(myScript, (int)UnitSyncS.BitMask.Position, MailmanS.SendMode.UNRELIABLE);
+            MailmanS.Instance().ObjectUpdated(myScript, SendMode.UNRELIABLE,(int)UnitSyncS.BitMask.Position);
         }
     }
 }
@@ -49,9 +49,9 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
 
     public static int UnitCreated(UnitSyncS u)
     {
-        return MailmanS.Instance().SyncableObjectCreated(u, 
-                (byte)(UnitSyncS.BitMask.Position | UnitSyncS.BitMask.Rotation),
-                MailmanS.SendMode.Created | MailmanS.SendMode.UpdateRel
+        return MailmanS.Instance().SyncableObjectCreated(u,
+                SendMode.Created | SendMode.UpdateRel,
+                (byte)(UnitSyncS.BitMask.Position | UnitSyncS.BitMask.Rotation)
             );
     }
 
@@ -67,7 +67,7 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
 
     public void SetPosition()
     {
-        MailmanS.Instance().ObjectUpdated(this, (int)BitMask.Position, MailmanS.SendMode.UNRELIABLE);
+        MailmanS.Instance().ObjectUpdated(this, SendMode.UNRELIABLE, (int)BitMask.Position);
     }
 
     public void Start()
@@ -93,15 +93,14 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
         return unitType;
     }
     
-    public void WriteToBuffer(BinaryWriter buffer, int mask, int mode)
+    public void WriteToBuffer(BinaryWriter buffer, SendMode mode, int mask)
     {
         BitMask m = (BitMask)mask;
-        MailmanS.SendMode smode = (MailmanS.SendMode)mode;
 
-        if ( (smode & MailmanS.SendMode.Created) > 0 )
+        if ( (mode & SendMode.Created) > 0 )
             buffer.Write((byte)unitType);
 
-        if ((smode & MailmanS.SendMode.UpdateRel) > 0)
+        if ((mode & SendMode.UpdateRel) > 0)
         {
             if ((m & BitMask.Position) != 0)
                 DataWriter.WriteVector3(buffer, m_transform.position);
@@ -120,13 +119,12 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
             m_transform.rotation = DataReader.ReadQuaternion(buffer);
     }
 
-    public ushort CalculateDataSize(int mask, int mode)
+    public ushort CalculateDataSize(SendMode mode, int mask)
     {
         int s = 0;
         BitMask m = (BitMask)mask;
-        MailmanS.SendMode smode = (MailmanS.SendMode)mode;
 
-        if ((smode & MailmanS.SendMode.Created) > 0)
+        if ((mode & SendMode.Created) > 0)
             s += sizeof(byte);
 
         if ((m & BitMask.Position) != 0)

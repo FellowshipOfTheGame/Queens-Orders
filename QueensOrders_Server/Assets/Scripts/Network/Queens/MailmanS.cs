@@ -19,22 +19,9 @@ using System.IO;
 /// </summary>
 public class MailmanS
 {
-    public enum SendMode : byte
-    {
-        NotChanged = 0,
-
-        // UNRELIABLE
-        Updated = 1,
-
-        // RELIABLE
-        Destroy = 2,
-        Hide = 4,
-        Created = 8,
-        UpdateRel = 16,
-
-        UNRELIABLE = Updated,
-        RELIABLE = Destroy | Hide | Created | UpdateRel,
-    }
+    // Messages
+    public static MessageIdentifier SEND_GENERAL_UPDATE = new MessageIdentifier(0, 1);
+    public static MessageIdentifier SEND_IMPORTANT_UPDATE = new MessageIdentifier(1, 1);
 
     private class SyncableObjectsHandler
     {
@@ -81,7 +68,7 @@ public class MailmanS
                 int index = s.getIndex();
                 byte mask = objectsBitMask[index];
                 SendMode mode = objectsModeBitMask[s.getIndex()];
-                ushort datasize = s.CalculateDataSize(mask, (int)mode);
+                ushort datasize = s.CalculateDataSize(mode, mask);
 
                 if (datasize == 0)
                     continue;
@@ -101,7 +88,7 @@ public class MailmanS
                     long bufferBeginI = msgImportant.w.BaseStream.Position;
                     
                     // data
-                    s.WriteToBuffer(msgImportant.w, (int)mask, (int)mode);
+                    s.WriteToBuffer(msgImportant.w, mode, (int)mask);
 
                     long bufferEnd = msgImportant.w.BaseStream.Position;
 
@@ -119,7 +106,7 @@ public class MailmanS
                     long bufferBeginG = msgGeneral.w.BaseStream.Position;
                     
                     // data
-                    s.WriteToBuffer(msgGeneral.w, (int)mask, (int)mode);
+                    s.WriteToBuffer(msgGeneral.w, mode, (int)mask);
 
                     long bufferEnd = msgGeneral.w.BaseStream.Position;
 
@@ -161,10 +148,10 @@ public class MailmanS
             }
         }
 
-        public int AddNewObject(SyncableObject obj, byte datamask, SendMode sendmode)
+        public int AddNewObject(SyncableObject obj, SendMode sendmode, int datamask)
         {
             objects.Add(obj);
-            objectsBitMask.Add(datamask);
+            objectsBitMask.Add((byte)datamask);
             objectsModeBitMask.Add(sendmode | SendMode.Created);
 
             int index = objects.Count - 1;
@@ -191,11 +178,6 @@ public class MailmanS
         private List<SendMode> objectsModeBitMask; ///< UpdateMode data bits for each object
         private List<byte> objectSendTo; ///< Players id to send to each bit represents a player ID
     }
-
-    // Messages
-    public static MessageIdentifier SEND_GENERAL_UPDATE = new MessageIdentifier(1, 0);
-    public static MessageIdentifier SEND_IMPORTANT_UPDATE = new MessageIdentifier(1, 1);
-
     
     // Atributes
     private static MailmanS mailman = null;
@@ -230,13 +212,13 @@ public class MailmanS
         unitHandler.Dispatch(server);
     }
 
-    public int SyncableObjectCreated(SyncableObject s, byte mask, SendMode mode)
+    public int SyncableObjectCreated(SyncableObject s, SendMode mode, int mask)
     {
         // Check type os SyncableObject
-        return unitHandler.AddNewObject(s, mask, mode);
+        return unitHandler.AddNewObject(s, mode, mask);
     }
 
-    public void ObjectUpdated(SyncableObject obj, int mask, SendMode mode)
+    public void ObjectUpdated(SyncableObject obj, SendMode mode, int mask)
     {
         unitHandler.ObjectUpdated(obj, (byte)mask, mode);
     }    

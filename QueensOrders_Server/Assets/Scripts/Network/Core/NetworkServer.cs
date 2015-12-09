@@ -48,9 +48,17 @@ public abstract class NetworkServer : MonoBehaviour {
     public void RegisterMsgIDReceiver(MessageIdentifier id, OnMessage d)
     {
         if (id.channel < connectionConfig.ChannelCount)
+        {
+            if (onMessageReceivers[id.channel, id.id] != null)
+            {
+                throw new UnityException("Can't assign multiple receivers to the same message id on the same channel [channel: " + id.channel + ", id: " + id.id + "]");
+            }
             onMessageReceivers[id.channel, id.id] = d;
+        }
         else
+        {
             throw new System.Exception("Invalid channel");
+        }
     }
 
     public virtual void LateUpdate()

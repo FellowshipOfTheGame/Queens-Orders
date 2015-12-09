@@ -27,7 +27,15 @@ public class UnitSyncC : MonoBehaviour, SyncableObject
     }
     #endregion
 
-    public static UnitSyncC CreateNew(int index, byte type)
+    public static SyncableObject CreateSyncableFromMessage(int index, SendMode mode, int mask, BinaryReader reader)
+    {
+        byte unitType = reader.ReadByte();
+        SyncableObject obj = CreateNew(index, unitType);
+        obj.ReadFromBuffer(reader, mode, mask);
+        return obj;
+    }
+
+    protected static UnitSyncC CreateNew(int index, byte type)
     {
         switch ((UnitType)type)
         {
@@ -59,7 +67,7 @@ public class UnitSyncC : MonoBehaviour, SyncableObject
         return index;
     }
 
-    public void WriteToBuffer(BinaryWriter buffer, int mask, int mode)
+    public void WriteToBuffer(BinaryWriter buffer, SendMode mode, int mask)
     {
         BitMask m = (BitMask)mask;
 
@@ -69,7 +77,7 @@ public class UnitSyncC : MonoBehaviour, SyncableObject
             DataWriter.WriteQuaternion(buffer, m_transform.rotation);
     }
 
-    public void ReadFromBuffer(BinaryReader buffer, int mask, int mode)
+    public void ReadFromBuffer(BinaryReader buffer, SendMode mode, int mask)
     {
         BitMask m = (BitMask)mask;
 
