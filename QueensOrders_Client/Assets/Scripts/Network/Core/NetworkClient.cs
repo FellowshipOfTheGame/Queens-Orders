@@ -132,7 +132,7 @@ public abstract class NetworkClient : MonoBehaviour
         LogNetworkError(error);
     }
 
-    #region Recv Events
+    #region OnEvents
     public abstract void OnConnectEvent(int recHostID, int recConnectionID, int recChannelID);
 
     public abstract void OnDisconnectEvent(int recHostID, int recConnectionID, int recChannelID);

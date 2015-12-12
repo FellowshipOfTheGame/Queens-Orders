@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 
-/// <summary>
+///
 /// 
 /// ***** SEND *****
 /// 
@@ -16,12 +16,25 @@ using System.IO;
 /// ***** RECEIVE *****
 /// 
 /// 
-/// </summary>
+///
 public class MailmanS
 {
+    #region Static stuff
     // Messages
     public static MessageIdentifier SEND_GENERAL_UPDATE = new MessageIdentifier(0, 1);
     public static MessageIdentifier SEND_IMPORTANT_UPDATE = new MessageIdentifier(1, 1);
+
+    public static MailmanS Instance()
+    {
+        if (mailman == null)
+        {
+            mailman = new MailmanS();
+        }
+
+        return mailman;
+    }
+    private static MailmanS mailman = null;
+    #endregion
 
     private class SyncableObjectsHandler
     {
@@ -63,7 +76,7 @@ public class MailmanS
             MessageToSend msgGeneral = SEND_GENERAL_UPDATE.CreateMessage();
             MessageToSend msgImportant = SEND_IMPORTANT_UPDATE.CreateMessage();
 
-            int work = 0; // 0 = done nothing, 1 = unreliable only, 2 = reliable only, 3 = both
+            int work = 0; // What do i need to send? 0 = nothing, 1 = unreliable only, 2 = reliable only, 3 = unreliable and reliable
             foreach (SyncableObject s in objectsToUpdate)
             {
                 int index = s.getIndex();
@@ -183,26 +196,17 @@ public class MailmanS
         private List<SendMode> objectsModeBitMask; ///< UpdateMode data bits for each object
         private List<byte> objectSendTo; ///< Players id to send to each bit represents a player ID
     }
-    
-    // Atributes
-    private static MailmanS mailman = null;
+
+    /// Atributes
+
     private SyncableObjectsHandler unitHandler;
 
-    
-    // Member Functions
+
+    /// Member Functions
+
     private MailmanS()
     {
         unitHandler = new SyncableObjectsHandler();
-    }
-
-    public static MailmanS Instance()
-    {
-        if (mailman == null)
-        {
-            mailman = new MailmanS();
-        }
-
-        return mailman;
     }
 
     /// Register this Mailman to given network client
@@ -212,17 +216,22 @@ public class MailmanS
         // Does not receive anything yet...?
     }
 
+	// Send anything the Mailman have to send
     public void Dispatch(QOServer server)
     {
         unitHandler.Dispatch(server);
     }
 
+	// Register new Syncables created.
+	// This function MUST be called when a new SyncableObject is created.
     public int SyncableObjectCreated(SyncableObject s, SendMode mode, int mask)
     {
         // Check type os SyncableObject
         return unitHandler.AddNewObject(s, mode, mask);
     }
 
+	// Register the SyncableObject as updated with given flags
+	// These flags are "added" with current state (defined by previous calls)
     public void ObjectUpdated(SyncableObject obj, SendMode mode, int mask)
     {
         unitHandler.ObjectUpdated(obj, (byte)mask, mode);

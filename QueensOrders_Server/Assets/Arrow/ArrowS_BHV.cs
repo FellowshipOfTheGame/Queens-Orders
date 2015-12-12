@@ -34,13 +34,9 @@ public class ArrowS_BHV : MonoBehaviour {
 				Position = Hit.point;
 
 				//if (Vector3.Dot (Velocity.normalized, Hit.normal)){
-
 					Stuck = true;
-
 				//}
-
-			}
-			else {
+			} else {
 
 				Position = Position+Velocity*Time.deltaTime;
 

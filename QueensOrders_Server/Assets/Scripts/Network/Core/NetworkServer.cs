@@ -45,6 +45,8 @@ public abstract class NetworkServer : MonoBehaviour {
         onMessageReceivers = new OnMessage[connectionConfig.ChannelCount, 256];
     }
 
+	// Register a delegate on given MessageIdentifier for receiving data
+	// If the MessageIdentifier conflicts with another, an exception is thrown (This should never happen on final build)
     public void RegisterMsgIDReceiver(MessageIdentifier id, OnMessage d)
     {
         if (id.channel < connectionConfig.ChannelCount)
@@ -61,6 +63,7 @@ public abstract class NetworkServer : MonoBehaviour {
         }
     }
 
+	// Update the server main loop
     public virtual void LateUpdate()
     {
         int recHostID;
@@ -72,13 +75,13 @@ public abstract class NetworkServer : MonoBehaviour {
 
         NetworkEventType networkEvent = NetworkEventType.DataEvent;
 
-        // Poll both server/client events
+        // Handle events
         do
         {
             // Recieve Data
             networkEvent = NetworkTransport.Receive(out recHostID, out recConnectionID, out recChannelID, buffer, 1024, out recDataSize, out error);
 
-            //! TODO [Tratar o bit de erro]
+            //! TODO Handle error bit
 
             // Process event
             switch (networkEvent)
@@ -102,7 +105,7 @@ public abstract class NetworkServer : MonoBehaviour {
                     OnDisconnectEvent(recConnectionID, recConnectionID, recChannelID);
                     break;
 
-                default:
+                default: //! TODO: Handle more events?
                     Debug.Log("Unhandled network event: " + networkEvent.ToString());
                     break;
             }
@@ -110,6 +113,7 @@ public abstract class NetworkServer : MonoBehaviour {
         } while (networkEvent != NetworkEventType.Nothing);
     }
 
+	// Create the server with current configuration
     protected bool CreateServer()
     {
         HostTopology ht = new HostTopology(connectionConfig, maxConnections);
@@ -135,7 +139,7 @@ public abstract class NetworkServer : MonoBehaviour {
         return serverOpen;
     }
 
-    #region Recv Events
+    #region OnEvents
     public abstract void OnConnectEvent(int recHostID, int recConnectionID, int recChannelID);
 
     public abstract void OnDisconnectEvent(int recHostID, int recConnectionID, int recChannelID);
@@ -149,13 +153,14 @@ public abstract class NetworkServer : MonoBehaviour {
             Debug.Log("Error: " + nerror.ToString());
         }
     }
-    
+
+	// The only way out
     protected byte Send(int client, MessageToSend message)
     {
         byte error = 0;
 
         MemoryStream buffer = (MemoryStream)message.w.BaseStream;
-        if (buffer.Length <= 0)
+        if (buffer.Length <= 0) // ignore blank (should never happen?)
             return 0;
 
         NetworkTransport.Send(socket, client, message.id.channel,  buffer.ToArray(), (int)buffer.Length, out error);
@@ -165,16 +170,18 @@ public abstract class NetworkServer : MonoBehaviour {
         return error;
     }
 
-    /// On receiving data
-    /// Read the first byte and calls the corresponding ID handler.
+    // On receiving data
+    // Read the first byte and calls the corresponding <channel,ID> handler.
     private void OnDataEvent(int recHostID, int recConnectionID, int recChannelID, byte[] recData)
     {
         // Decoding Message
         BinaryReader reader = new BinaryReader(new MemoryStream(recData));
         byte msgID = reader.ReadByte();
 
-        if (onMessageReceivers[recChannelID, msgID] != null)
+        if (onMessageReceivers[recChannelID, msgID] != null){
             onMessageReceivers[recChannelID, msgID](reader, recData.Length);
+		} else {
+			Debug.Log("Warning:  Unknown message with id: "+msgID + " on channel " + recChannelID + " from connection: " + recConnectionID);
+		}
     }
-
 }

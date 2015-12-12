@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 
-/// <summary>
+/// Mailman
+/// Manages all SyncableObjects in the world
+/// sending only the necessary data for the correct players
 /// 
 /// ***** SEND *****
 /// 
@@ -16,9 +18,11 @@ using System.IO;
 ///     ID 1:  Create/Destroy characters
 /// 
 /// 
-/// </summary>
+///
 public class MailmanC
 {
+    #region Static stuff
+    // Singleton
     public static MailmanC Instance()
     {
         if (mailman == null)
@@ -31,9 +35,10 @@ public class MailmanC
 
     private static MailmanC mailman = null;
 
-    // Messages
+    // Messages used by this service
     public static MessageIdentifier RECEIVE_GENERAL_UPDATE = new MessageIdentifier(0, 1);
     public static MessageIdentifier RECEIVE_IMPORTANT_UPDATE = new MessageIdentifier(1, 1);
+    #endregion
 
     ///
     ///
@@ -41,8 +46,8 @@ public class MailmanC
 
     public delegate SyncableObject CreateSyncableFromMessage(int index, SendMode mode, int mask, BinaryReader reader);
 
-    private List<CreateSyncableFromMessage> createFromMessage;
-    private List<SyncableObject> objects; ///< All syncable objects in game
+    private List<CreateSyncableFromMessage> createFromMessage; // Ordered list of delegates to call when receiving create messages
+    private List<SyncableObject> objects; // All syncable objects in game
 
         
     /// Access by the static Instance() method
@@ -89,14 +94,14 @@ public class MailmanC
             ushort msgDataSize = reader.ReadUInt16();
             //UnityEngine.Debug.Log("data size: " + msgDataSize);
 
-            if (index < objects.Count){
-                if (objects[index] != null)
-                {
-                    objects[index].ReadFromBuffer(reader, mode, mask);
-                } else {
-                    // ignore message data
-                    reader.ReadBytes(msgDataSize);
-                }
+            if (index < objects.Count && objects[index] != null)
+            {   
+                /// TODO: Verify if object is of correct syncable type
+                // read if object is valid
+                objects[index].ReadFromBuffer(reader, mode, mask);
+            } else {
+                // ignore message data
+                reader.ReadBytes(msgDataSize);
             }
         }
 

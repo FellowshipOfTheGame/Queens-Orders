@@ -67,16 +67,6 @@ public class UnitSyncC : MonoBehaviour, SyncableObject
         return index;
     }
 
-    public void WriteToBuffer(BinaryWriter buffer, SendMode mode, int mask)
-    {
-        BitMask m = (BitMask)mask;
-
-        if ((m & BitMask.Position) != 0)
-            DataWriter.WriteVector3(buffer, m_transform.position);
-        if ((m & BitMask.Rotation) != 0)
-            DataWriter.WriteQuaternion(buffer, m_transform.rotation);
-    }
-
     public void ReadFromBuffer(BinaryReader buffer, SendMode mode, int mask)
     {
         BitMask m = (BitMask)mask;
@@ -87,17 +77,20 @@ public class UnitSyncC : MonoBehaviour, SyncableObject
             transform.rotation = DataReader.ReadQuaternion(buffer);
     }
 
-    public int CalculateDataSize(int mask)
+    public int CalculateDataSize(SendMode mode, int mask)
     {
         int s = 0;
         BitMask m = (BitMask)mask;
+
+        if ((mode & SendMode.Created) > 0)
+            s += sizeof(byte);
 
         if ((m & BitMask.Position) != 0)
             s += DataWriter.Vector3Size();
         if ((m & BitMask.Rotation) != 0)
             s += DataWriter.QuaternionSize();
 
-        return s;
+        return (ushort)s;
     }
 
 }

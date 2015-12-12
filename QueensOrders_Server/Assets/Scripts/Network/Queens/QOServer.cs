@@ -46,38 +46,43 @@ public class QOServer : NetworkServer
     private List<Client> clientList;
 
 
-    /// GET
+    // get all connected clients
     public List<Client> getClientList() //TODO: return a readonly
     {
         return clientList;
     }
 
-    ///
+    // Kind of a Unity Constructor
     public override void Start()
     {
         base.Start();
 
+		// Basic initialization
         serverState = ServerState.NOT_ONLINE;
         clientList = new List<Client>();
-     
     }
 
+	// Start server with current configuration
     public bool StartServer()
     {
         if (IsServerOpen())
         {
+			Debug.LogError("Error: The server is already open!");
             return false;
         }
 
         if (!CreateServer())
         {
-            Debug.LogError("Failed to create server!");
+            Debug.LogError("Error: Failed to create server!");
             return false;
         }
 
-        //TODO: remove this - DEBUG
+        // DEBUG -----
+		// Somewhere this should be initialized with a "starting" server state.
+		// and when "in game" set to something like "GAME state"
         serverState = ServerState.GAME;
-        MailmanS.Instance().RegisterToNetwork(this);
+        MailmanS.Instance().RegisterToNetwork(this); // Registered here for "game mode" test
+		// ---------------
 
         return true;
     }
@@ -85,17 +90,16 @@ public class QOServer : NetworkServer
     public override void LateUpdate()
     {
         base.LateUpdate();
-
-        /*if (Input.GetKeyDown(KeyCode.Space))
-        {
-            BroadcastMsg();
-        }*/
-
+        
         if (IsServerOpen())
         {
-            if (serverState == ServerState.GAME)
+            if (serverState == ServerState.GAME) // Handle the game mode server state
             {
+				// Let the Mailman work
                 MailmanS.Instance().Dispatch(this);
+				
+				// Mailman is _currently_ the only functional service ~
+				
             }
         }
     }
@@ -113,6 +117,8 @@ public class QOServer : NetworkServer
     }
     #endregion
     
+	// The only way out for services to send data
+	// Can log some data from informations here
     public void SendToPlayer(int playerID, MessageToSend msg)
     {
         Send(playerID, msg);

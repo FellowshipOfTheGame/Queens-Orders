@@ -7,9 +7,8 @@ public class ArrowSyncC_BHV : MonoBehaviour, SyncableObject{
 
     public const int SYNC_TYPE = 2;
 
-    int index = -1;
-
-    ArrowC_BHV realObj;
+    private int index = -1;
+    private ArrowC_BHV realObj;
 
     public static SyncableObject CreateSyncableFromMessage(int index, SendMode mode, int mask, BinaryReader reader)
     {
@@ -18,20 +17,31 @@ public class ArrowSyncC_BHV : MonoBehaviour, SyncableObject{
         return obj;
     }
 
+    // Create and initializes the object
     protected static ArrowSyncC_BHV CreateNew(int index)
     {
         GameObject g = Instantiate(GameData.FindObjectOfType<GameData>().Arrow);
         ArrowSyncC_BHV comp = g.GetComponent<ArrowSyncC_BHV>();
         comp.index = index;
-        comp.realObj = g.GetComponent<ArrowC_BHV>();
-        comp.realObj.initialized = true;
         return comp;
     }
 
-    public int CalculateDataSize(int mask)
+
+
+    // Initialize basic variables
+    public void Awake()
     {
-        // never writes
-        return 0;
+        realObj = GetComponent<ArrowC_BHV>();
+    }
+
+    public int CalculateDataSize(SendMode mode, int mask)
+    {
+        int s = 0;
+
+        s += DataWriter.Vector3Size();
+        s += DataWriter.Vector3Size();
+
+        return (ushort)s;
     }
 
     public int getIndex()
@@ -46,8 +56,7 @@ public class ArrowSyncC_BHV : MonoBehaviour, SyncableObject{
         Vector3 p = DataReader.ReadVector3(buffer);
         Vector3 v = DataReader.ReadVector3(buffer);
 
-        //UnityEngine.Debug.Log("Arrow pos rec: " + p);
-
+        // Calculate new position based on ping
         Vector3 newp = p + v * ping + Vector3.down * ((9.8f * ping * ping) / 2.0f);
         Vector3 newv = v + Vector3.down * (9.8f * ping);
         Vector3 direction = (newp - p);
@@ -60,10 +69,5 @@ public class ArrowSyncC_BHV : MonoBehaviour, SyncableObject{
 
         realObj.Position = newp;
         realObj.Velocity = newv;
-    }
-
-    public void WriteToBuffer(BinaryWriter buffer, SendMode mode, int mask)
-    {
-        // do nothing
     }
 }

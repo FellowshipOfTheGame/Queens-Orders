@@ -52,12 +52,7 @@ public class QOClient : NetworkClient
     public override void Update()
     {
         base.Update();
-
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            SendTestDataToHost();
-        }
-
+        
         if (Input.GetKeyDown(KeyCode.R))
         {
             GetComponent<Transform>().position = Vector3.zero;
@@ -65,7 +60,7 @@ public class QOClient : NetworkClient
 
     }
 
-    #region Recv Events
+    #region OnEvents
     public override void OnConnectEvent(int recHostID, int recConnectionID, int recChannelID)
     {
         Debug.Log("Client: Client connected to " + recConnectionID.ToString() + "!");
@@ -76,19 +71,4 @@ public class QOClient : NetworkClient
         Debug.Log("Client: Disconnected from server!");
     }
     #endregion
-
-
-    // Test
-    public void SendTestDataToHost()
-    {
-        // Send the server a message
-        byte[] buffer = new byte[1024];
-        MemoryStream stream = new MemoryStream(buffer);
-        BinaryFormatter f = new BinaryFormatter();
-        f.Serialize(stream, "Hello!");
-
-        byte error = SendToServer(stream);
-
-        LogNetworkError(error);
-    }
 }

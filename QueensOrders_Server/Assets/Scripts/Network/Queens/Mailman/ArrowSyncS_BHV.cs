@@ -52,11 +52,6 @@ public class ArrowSyncS_BHV : MonoBehaviour, SyncableObject{
         DataWriter.WriteVector3(buffer, velocity);
     }
 
-    public void ReadFromBuffer(BinaryReader buffer, int mask)
-    {
-        
-    }
-
     public ushort CalculateDataSize(SendMode mode, int mask)
     {
         int s = 0;

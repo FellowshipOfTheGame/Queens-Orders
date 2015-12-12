@@ -28,6 +28,8 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
     #region ENUMS
     public const int SYNC_TYPE = 1;
 
+	// Indentify this unit type
+	// Used to create the a new unit instance with the correct prefab
     public enum UnitType
     {
         Warrior = 0,
@@ -47,6 +49,10 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
     }
     #endregion
 
+	// Handle newly created instances
+	// Called automatically once the object is created
+	// This functions just separates standard initialization
+	// with mailman communitcation
     public static int UnitCreated(UnitSyncS u)
     {
         return MailmanS.Instance().SyncableObjectCreated(u,
@@ -108,17 +114,7 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
                 DataWriter.WriteQuaternion(buffer, m_transform.rotation);
         }
     }
-
-    public void ReadFromBuffer(BinaryReader buffer, int mask)
-    {
-        BitMask m = (BitMask)mask;
-
-        if ((m & BitMask.Position) != 0)
-            m_transform.position = DataReader.ReadVector3(buffer);
-        if ((m & BitMask.Rotation) != 0)
-            m_transform.rotation = DataReader.ReadQuaternion(buffer);
-    }
-
+    
     public ushort CalculateDataSize(SendMode mode, int mask)
     {
         int s = 0;
