@@ -7,24 +7,33 @@ public enum SendMode : byte
 {
     NotChanged = 0,
 
-    // UNRELIABLE
-    Updated = 1,
+    Unreliable = 0,
+    Reliable = 1, // Any message is implicitly unreliable, unless Reliable is specified
+    Created = 2, // New object, if bit is off, means it is an already existing object
+    Destroyed = 4, // Object connections destroyed
 
-    // RELIABLE
-    Destroy = 2,
-    Hide = 4,		// not in use... yet
-    Created = 8,	// not in use... yet
-    UpdateRel = 16,	// any update that MUST reach the player
-
-	// Simplify tests to see if the message need to be sent as reliable or not
-    UNRELIABLE = Updated,
-    RELIABLE = Destroy | Hide | Created | UpdateRel,
+    Visible = 8, // If set, the object is visible for the client
 }
 
-public interface SyncableObject {
+// Handle bits for SendMode enum
+public class SendModeBit
+{
+    public static bool Check(SendMode variable, SendMode flag)
+    {
+        return (variable & flag) > 0;
+    }
+    
+    public static SendMode TurnOffFlag(SendMode variable, SendMode flag)
+    {
+        return variable & ~flag;
+    }
+}
 
+public interface SyncableObject
+{
     int getIndex();
 
+    // CURRENT SUPPORTED RANGE: 0 ~ 255
     int getSyncableType();
     
     void WriteToBuffer(BinaryWriter buffer, SendMode mode, int mask);

@@ -209,7 +209,7 @@ public abstract class NetworkClient : MonoBehaviour
     private void OnDataEvent(int recHostID, int recConnectionID, int recChannelID, byte[] recData, int size)
     {
         // Decoding Message
-        BinaryReader reader = new BinaryReader(new MemoryStream(recData, 0, size));
+        BinaryReader reader = new BinaryReader(new MemoryStream(recData, 0, size, false, true));
         byte msgID = reader.ReadByte();
 
         Debug.Log(recChannelID + " Id: " + msgID + " Size: "+size);

@@ -27,11 +27,11 @@ public class UnitSyncC : MonoBehaviour, SyncableObject
     }
     #endregion
 
-    public static SyncableObject CreateSyncableFromMessage(int index, SendMode mode, int mask, BinaryReader reader)
+    public static SyncableObject CreateSyncableFromMessage(int index, DataMessage reader)
     {
-        byte unitType = reader.ReadByte();
+        byte unitType = reader.data.ReadByte();
         SyncableObject obj = CreateNew(index, unitType);
-        obj.ReadFromBuffer(reader, mode, mask);
+        obj.ReadFromBuffer(reader);
         return obj;
     }
 
@@ -55,26 +55,30 @@ public class UnitSyncC : MonoBehaviour, SyncableObject
     /// 
 
     private int index = -1; ///< Index on mailman vector
-    Transform m_transform;
-
-    public void Start()
-    {
-        m_transform = GetComponent<Transform>();
-    }
-
+        
     public int getIndex()
     {
         return index;
     }
 
-    public void ReadFromBuffer(BinaryReader buffer, SendMode mode, int mask)
+    public int getSyncableType()
     {
-        BitMask m = (BitMask)mask;
+        return SYNC_TYPE;
+    }
+
+    public void ReadFromBuffer(DataMessage buffer)
+    {
+        BitMask m = (BitMask)buffer.mask;
 
         if ((m & BitMask.Position) != 0)
-            transform.position = DataReader.ReadVector3(buffer);
+            transform.position = DataReader.ReadVector3(buffer.data);
         if ((m & BitMask.Rotation) != 0)
-            transform.rotation = DataReader.ReadQuaternion(buffer);
+            transform.rotation = DataReader.ReadQuaternion(buffer.data);
+        
+        foreach (SkinnedMeshRenderer s in GetComponentsInChildren<SkinnedMeshRenderer>()) { 
+            s.enabled = SendModeBit.Check(buffer.mode, SendMode.Visible);
+        }
+        
     }
 
     public int CalculateDataSize(SendMode mode, int mask)
@@ -82,7 +86,7 @@ public class UnitSyncC : MonoBehaviour, SyncableObject
         int s = 0;
         BitMask m = (BitMask)mask;
 
-        if ((mode & SendMode.Created) > 0)
+        if ( SendModeBit.Check(mode, SendMode.Created) )
             s += sizeof(byte);
 
         if ((m & BitMask.Position) != 0)
@@ -91,6 +95,13 @@ public class UnitSyncC : MonoBehaviour, SyncableObject
             s += DataWriter.QuaternionSize();
 
         return (ushort)s;
+    }
+
+    public void Destroy()
+    {
+        index = -1;
+        // Object destroyed on server, but we will leave the corpose on the world.
+        // GameObject.Destroy(gameObject);
     }
 
 }

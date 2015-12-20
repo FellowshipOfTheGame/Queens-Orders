@@ -2,15 +2,20 @@
 using System.Collections.Generic;
 using System.IO;
 
+public interface VisibilityProvider
+{
+    bool IsObjectVisibleForClient(SyncableObject obj, int clientID);
+}
+
 ///
 /// 
 /// ***** SEND *****
 /// 
 /// Channel 0: Unreliable
-///     ID 1: Update characters
+///     ID 1: ex: Update characters
 ///     
 /// Channel 1: Reliable
-///     ID 1:  Create/Destroy characters
+///     ID 1:  ex: Create/Destroy characters
 /// 
 /// 
 /// ***** RECEIVE *****
@@ -44,6 +49,8 @@ public class MailmanS
             objectsToUpdate = new List<SyncableObject>();
             objectsBitMask = new List<byte>();
             objectsModeBitMask = new List<SendMode>();
+            objectsPrevVis = new List<List<SendMode>>();
+            openIndices = new List<int>();
         }
 
         public SyncableObject getObject(int index)
@@ -51,7 +58,7 @@ public class MailmanS
             return objects[index];
         }
         
-        public void ObjectUpdated(SyncableObject obj, byte datamask, SendMode sendmode)
+        public void ObjectUpdated(SyncableObject obj, SendMode sendmode, byte datamask)
         {
             int index = obj.getIndex();
 
@@ -68,68 +75,132 @@ public class MailmanS
             UnityEngine.Debug.Log("Updated: " + objectsBitMask[index]);
         }
         
-        public void Dispatch(QOServer server) ///TODO: Remove from this class
+        public void Dispatch(QOServer server, VisibilityProvider vp)
         {
             UnityEngine.Debug.Log("Dispatch");
             long sentObjs = 0;
-            //
-            MessageToSend msgGeneral = SEND_GENERAL_UPDATE.CreateMessage();
-            MessageToSend msgImportant = SEND_IMPORTANT_UPDATE.CreateMessage();
 
-            int work = 0; // What do i need to send? 0 = nothing, 1 = unreliable only, 2 = reliable only, 3 = unreliable and reliable
+            // What am I sending this frame? 0 = nothing, 1 = unreliable only, 2 = reliable only, 3 = unreliable and reliable
+            int work = 0;
+
+            // Check if there is a client
+            List<QOServer.Client> clients = server.getClientList();
+            int nClients = clients.Count;
+            if (nClients <= 0)
+            {
+                UnityEngine.Debug.Log("No clients connected!");
+                return;
+            }
+            
+            // Check previous state list
+            if (objectsPrevVis.Count < nClients)
+            {
+                // Create new index and objects info if necessary
+                List<SendMode> c = new List<SendMode>();
+                objectsPrevVis.Add(c);
+                for (int i = 0; i < objectsBitMask.Count; ++i)
+                {
+                    c.Add(0);
+                }
+            }
+
+            // Create base messages
+            MessageToSend[,] msgs = new MessageToSend[nClients, 2];
+            for (int i = 0; i < nClients; ++i){
+                msgs[i, 0] = SEND_IMPORTANT_UPDATE.CreateMessage();
+                msgs[i, 1] = SEND_GENERAL_UPDATE.CreateMessage();
+            }
+
+            // Handle updated objects
             foreach (SyncableObject s in objectsToUpdate)
             {
                 int index = s.getIndex();
                 byte mask = objectsBitMask[index];
-                SendMode mode = objectsModeBitMask[s.getIndex()];
+                SendMode mode = objectsModeBitMask[index];
                 ushort datasize = s.CalculateDataSize(mode, mask);
 
                 if (datasize == 0)
                     continue;
 
-                if ((mode & SendMode.RELIABLE) > 0)
+                for (int clientID = 0; clientID < nClients; ++clientID)
                 {
-                    work |= 2;
-                    msgImportant.w.Write((ushort)index);
-                    msgImportant.w.Write((byte)mode);
-                    msgImportant.w.Write((byte)mask);
-                    if ((mode & SendMode.Created) > 0)
-                    {
-                        msgImportant.w.Write((byte)s.getSyncableType());
+                    // Guarantee list size
+                    for (int i = objectsPrevVis[clientID].Count; i < objectsBitMask.Count; ++i){
+                        objectsPrevVis[clientID].Add(0);
                     }
-                    msgImportant.w.Write((ushort)datasize);
 
-                    long bufferBeginI = msgImportant.w.BaseStream.Position;
-                    
-                    // data
-                    s.WriteToBuffer(msgImportant.w, mode, (int)mask);
+                    // Check if should send based on visibility
+                    bool shouldSend = true;
+                    bool isVisibleNow = vp.IsObjectVisibleForClient(s, clients[clientID].id);
+                    SendMode lastState = objectsPrevVis[clientID][index];
+                    if (isVisibleNow)
+                    {
+                        if ( !SendModeBit.Check(lastState, SendMode.Visible)) // was not visible
+                        {
+                            mode |= SendMode.Visible | SendMode.Reliable; // force reliable 
+                            objectsPrevVis[clientID][index] = SendMode.Visible;
+                        }
+                    }
+                    else // not visible
+                    {
+                        if ( SendModeBit.Check(lastState, SendMode.Visible) ) // was visible
+                        {
+                            mode |= SendMode.Reliable; // force reliable
+                            mode = SendModeBit.TurnOffFlag(mode, SendMode.Visible);
+                            objectsPrevVis[clientID][index] = 0;
+                        }
+                        else if (!SendModeBit.Check(lastState, SendMode.Visible))
+                        {
+                            shouldSend = false;
+                        }
+                    }
 
-                    long bufferEnd = msgImportant.w.BaseStream.Position;
+                    // Write data for this client
+                    if (shouldSend)
+                    {
+                        BinaryWriter writeTo = null;
 
-                    UnityEngine.Debug.Log(index + " begin: " + bufferBeginI + " End: " + bufferEnd + " datasize: " + datasize);
-                    UnityEngine.Assertions.Assert.IsTrue((bufferEnd - bufferBeginI) == datasize);
+                        // Get correct stream
+                        if ( SendModeBit.Check(mode, SendMode.Reliable) )
+                        {
+                            work |= 2;
+                            writeTo = msgs[clientID, 0].w; // reliable stream
+                        }
+                        else // If not reliable
+                        {
+                            work |= 1;
+                            writeTo = msgs[clientID, 1].w; // unreliable stream
+                        }
 
-                    sentObjs++;
+                        // Write Header
+                        writeTo.Write((ushort)index);
+                        writeTo.Write((byte)s.getSyncableType());
+                        writeTo.Write((byte)mode);
+                        writeTo.Write((byte)mask);
+                        writeTo.Write((ushort)datasize);
+
+                        // Write SyncableObject data checking the data size written
+                        long bufferBegin = writeTo.BaseStream.Position;
+                        // data
+                        s.WriteToBuffer(writeTo, mode, (int)mask);
+                        long bufferEnd = writeTo.BaseStream.Position;
+
+                        bool sizError = (bufferEnd - bufferBegin) == datasize;
+                        if (sizError)
+                        {
+                            UnityEngine.Debug.Log("index: " + index + " Begin reliable: " + bufferBegin + " End: " + bufferEnd + " datasize: " + datasize + " diff: " + (bufferEnd - bufferBegin));
+                            UnityEngine.Debug.Log("SendMode " + mode + " Mask: " + mask);
+                            UnityEngine.Assertions.Assert.IsTrue(sizError);
+                        }
+
+                        sentObjs++;
+                    }
                 }
-                else if ((mode & SendMode.UNRELIABLE) > 0)
+
+                if ( SendModeBit.Check(mode, SendMode.Destroyed))
                 {
-                    work |= 1;
-                    msgGeneral.w.Write((ushort)index);
-                    msgGeneral.w.Write((byte)mode);
-                    msgGeneral.w.Write((byte)mask);
-                    msgGeneral.w.Write((ushort)datasize);
-
-                    long bufferBeginG = msgGeneral.w.BaseStream.Position;
-                    
-                    // data
-                    s.WriteToBuffer(msgGeneral.w, mode, (int)mask);
-
-                    long bufferEnd = msgGeneral.w.BaseStream.Position;
-
-                    UnityEngine.Debug.Log(index + " begin: " + bufferBeginG + " End: " + bufferEnd + " datasize: " + datasize);
-                    UnityEngine.Assertions.Assert.IsTrue((bufferEnd - bufferBeginG) == datasize);
-
-                    sentObjs++;
+                    openIndices.Add(index);
+                    objects[index] = null;
                 }
             }
 
@@ -137,21 +208,20 @@ public class MailmanS
             {
                 UnityEngine.Debug.Log("Sent update for "+sentObjs+" syncables!");
 
-                List<QOServer.Client> clients = server.getClientList();
                 if ((work & 2) > 0)
                 {
-                    // TODO: Check if palyer should receive
-                    foreach (QOServer.Client c in clients) {
-                        server.SendToPlayer(c.id, msgImportant);
-                        UnityEngine.Debug.Log("Reliable send to "+c.id);
+                    for (int i = 0; i < nClients; ++i)
+                    {
+                        server.SendToPlayer(clients[i].id, msgs[i, 0]);
+                        UnityEngine.Debug.Log("Reliable send to "+clients[i].id);
                     }
                 }
                 if ((work & 1) > 0)
                 {
-                    // TODO: Check if palyer should receive
-                    foreach (QOServer.Client c in clients){
-                        server.SendToPlayer(c.id, msgGeneral);
-                        UnityEngine.Debug.Log("UnReliable send to " + c.id);
+                    for (int i = 0; i < nClients; ++i)
+                    {
+                        server.SendToPlayer(clients[i].id, msgs[i, 1]);
+                        UnityEngine.Debug.Log("UnReliable send to " + clients[i].id);
                     }
                 }
 
@@ -168,17 +238,46 @@ public class MailmanS
 
         public int AddNewObject(SyncableObject obj, SendMode sendmode, int datamask)
         {
-            objects.Add(obj);
-            objectsBitMask.Add((byte)datamask);
-            objectsModeBitMask.Add(sendmode | SendMode.Created);
+            int index = -1;
+            if (openIndices.Count > 0)
+            {
+                index = openIndices[0];
+                openIndices.RemoveAt(0);
 
-            int index = objects.Count - 1;
+                objects[index] = obj;
+                objectsBitMask[index] = (byte)datamask;
+                objectsModeBitMask[index] = (sendmode | SendMode.Created);
+
+                foreach (List<SendMode> l in objectsPrevVis)
+                {
+                    l[index] = SendMode.NotChanged;
+                }
+            }
+            else
+            {
+                // Append
+                objects.Add(obj);
+                objectsBitMask.Add((byte)datamask);
+                objectsModeBitMask.Add(sendmode | SendMode.Created);
+                index = objects.Count - 1;
+
+                foreach (List<SendMode> l in objectsPrevVis)
+                {
+                    l.Add(SendMode.NotChanged);
+                }
+            }
+            
             if (sendmode != 0 || sendmode != SendMode.NotChanged)
             {
                 addToUpdateList(index, true); // force add to update list
             }
 
             return index;
+        }
+
+        public void DestroyObject(SyncableObject obj)
+        {
+            ObjectUpdated(obj, SendMode.Destroyed, 0);
         }
 
         private void addToUpdateList(int index, bool forced = false)
@@ -193,12 +292,13 @@ public class MailmanS
         private List<SyncableObject> objects; ///< All syncable objects in game
         private List<SyncableObject> objectsToUpdate; ///< Objects that have changed
         private List<byte> objectsBitMask; ///< Updated data bits for each object
-        private List<SendMode> objectsModeBitMask; ///< UpdateMode data bits for each object
-        private List<byte> objectSendTo; ///< Players id to send to each bit represents a player ID
+        private List<SendMode> objectsModeBitMask; ///< UpdateMode SendMode for each object
+        private List<List<SendMode>> objectsPrevVis; ///< Previous state of visibility of each object for each player
+        private List<int> openIndices;
     }
 
     /// Atributes
-
+    
     private SyncableObjectsHandler unitHandler;
 
 
@@ -208,7 +308,7 @@ public class MailmanS
     {
         unitHandler = new SyncableObjectsHandler();
     }
-
+    
     /// Register this Mailman to given network client
     /// to receive specific message IDs and from specific channels
     public void RegisterToNetwork(NetworkServer network)
@@ -217,9 +317,9 @@ public class MailmanS
     }
 
 	// Send anything the Mailman have to send
-    public void Dispatch(QOServer server)
+    public void Dispatch(QOServer server, VisibilityProvider vp)
     {
-        unitHandler.Dispatch(server);
+        unitHandler.Dispatch(server, vp);
     }
 
 	// Register new Syncables created.
@@ -234,6 +334,6 @@ public class MailmanS
 	// These flags are "added" with current state (defined by previous calls)
     public void ObjectUpdated(SyncableObject obj, SendMode mode, int mask)
     {
-        unitHandler.ObjectUpdated(obj, (byte)mask, mode);
-    }    
+        unitHandler.ObjectUpdated(obj, mode, (byte)mask);
+    }
 }

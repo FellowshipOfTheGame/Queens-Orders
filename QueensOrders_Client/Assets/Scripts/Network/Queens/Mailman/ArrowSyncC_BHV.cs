@@ -10,10 +10,10 @@ public class ArrowSyncC_BHV : MonoBehaviour, SyncableObject{
     private int index = -1;
     private ArrowC_BHV realObj;
 
-    public static SyncableObject CreateSyncableFromMessage(int index, SendMode mode, int mask, BinaryReader reader)
+    public static SyncableObject CreateSyncableFromMessage(int index, DataMessage reader)
     {
         SyncableObject obj = CreateNew(index);
-        obj.ReadFromBuffer(reader, mode, mask);
+        obj.ReadFromBuffer(reader);
         return obj;
     }
 
@@ -44,17 +44,28 @@ public class ArrowSyncC_BHV : MonoBehaviour, SyncableObject{
         return (ushort)s;
     }
 
+    public void Destroy()
+    {
+        index = -1;
+        // The network connection has been destroyed, but the object may still exists on client side.
+    }
+
     public int getIndex()
     {
         return index;
     }
 
-    public void ReadFromBuffer(BinaryReader buffer, SendMode mode, int mask)
+    public int getSyncableType()
+    {
+        return SYNC_TYPE;
+    }
+
+    public void ReadFromBuffer(DataMessage buffer)
     {
         float ping = 16/1000;
         RaycastHit Hit;
-        Vector3 p = DataReader.ReadVector3(buffer);
-        Vector3 v = DataReader.ReadVector3(buffer);
+        Vector3 p = DataReader.ReadVector3(buffer.data);
+        Vector3 v = DataReader.ReadVector3(buffer.data);
 
         // Calculate new position based on ping
         Vector3 newp = p + v * ping + Vector3.down * ((9.8f * ping * ping) / 2.0f);

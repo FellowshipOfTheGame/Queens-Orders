@@ -15,7 +15,7 @@ public class ArrowSyncS_BHV : MonoBehaviour, SyncableObject{
 
     public static int Created(ArrowSyncS_BHV u)
     {
-        return MailmanS.Instance().SyncableObjectCreated(u, SendMode.Created | SendMode.UpdateRel, 0xff);
+        return MailmanS.Instance().SyncableObjectCreated(u, SendMode.Created | SendMode.Reliable, 0xff);
     }
 
     // Use this for initialization
@@ -31,7 +31,7 @@ public class ArrowSyncS_BHV : MonoBehaviour, SyncableObject{
 
         if (++updateCounter == STEPS_UNTIL_UPDATE)
         {
-            MailmanS.Instance().ObjectUpdated(this, SendMode.UNRELIABLE, 0xff);
+            MailmanS.Instance().ObjectUpdated(this, SendMode.Unreliable, 0xff);
             updateCounter = 0;
         }
     }

@@ -3,6 +3,7 @@
 using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
 using System.Collections.Generic;
+using System;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -30,6 +31,17 @@ enum ServerState {
     GAME,
 };
 
+public class RandomVisibilityProvider : VisibilityProvider
+{
+    public bool IsObjectVisibleForClient(SyncableObject obj, int clientID)
+    {
+        if (obj.getSyncableType() == ArrowSyncS_BHV.SYNC_TYPE) // arrows area always visible
+            return true;
+
+        return UnityEngine.Random.Range(0, 2) == 0; // everything else blinks... :>
+    }
+}
+
 public class QOServer : NetworkServer 
 {
     public class Client{
@@ -46,6 +58,8 @@ public class QOServer : NetworkServer
     private List<Client> clientList;
 
 
+    VisibilityProvider myVisibilityProvider;
+
     // get all connected clients
     public List<Client> getClientList() //TODO: return a readonly
     {
@@ -60,6 +74,8 @@ public class QOServer : NetworkServer
 		// Basic initialization
         serverState = ServerState.NOT_ONLINE;
         clientList = new List<Client>();
+
+        myVisibilityProvider = new RandomVisibilityProvider();
     }
 
 	// Start server with current configuration
@@ -96,7 +112,7 @@ public class QOServer : NetworkServer
             if (serverState == ServerState.GAME) // Handle the game mode server state
             {
 				// Let the Mailman work
-                MailmanS.Instance().Dispatch(this);
+                MailmanS.Instance().Dispatch(this, myVisibilityProvider);
 				
 				// Mailman is _currently_ the only functional service ~
 				

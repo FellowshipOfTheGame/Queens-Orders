@@ -17,7 +17,7 @@ public class UnitSyncSEditor : Editor
         if (GUILayout.Button("DIRTY!"))
         {
             Debug.Log("Dirty " + myScript.getIndex());
-            MailmanS.Instance().ObjectUpdated(myScript, SendMode.UNRELIABLE,(int)UnitSyncS.BitMask.Position);
+            MailmanS.Instance().ObjectUpdated(myScript, SendMode.Unreliable, (int)UnitSyncS.BitMask.Position);
         }
     }
 }
@@ -56,7 +56,7 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
     public static int UnitCreated(UnitSyncS u)
     {
         return MailmanS.Instance().SyncableObjectCreated(u,
-                SendMode.Created | SendMode.UpdateRel,
+                SendMode.Created | SendMode.Reliable,
                 (byte)(UnitSyncS.BitMask.Position | UnitSyncS.BitMask.Rotation)
             );
     }
@@ -69,17 +69,14 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
     private UnitType unitType = UnitType.Warrior;
 
     private int index; ///< Index on mailman vector
-    private Transform m_transform;
 
     public void SetPosition()
     {
-        MailmanS.Instance().ObjectUpdated(this, SendMode.UNRELIABLE, (int)BitMask.Position);
+        MailmanS.Instance().ObjectUpdated(this, SendMode.Unreliable, (int)BitMask.Position);
     }
 
     public void Start()
     {
-        m_transform = GetComponent<Transform>();
-
         index = UnitCreated(this);
         Debug.Log("Unity id: " + index);
     }
@@ -103,16 +100,13 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
     {
         BitMask m = (BitMask)mask;
 
-        if ( (mode & SendMode.Created) > 0 )
+        if ( SendModeBit.Check(mode, SendMode.Created) )
             buffer.Write((byte)unitType);
-
-        if ((mode & SendMode.UpdateRel) > 0)
-        {
-            if ((m & BitMask.Position) != 0)
-                DataWriter.WriteVector3(buffer, m_transform.position);
-            if ((m & BitMask.Rotation) != 0)
-                DataWriter.WriteQuaternion(buffer, m_transform.rotation);
-        }
+        
+        if ((m & BitMask.Position) != 0)
+            DataWriter.WriteVector3(buffer, transform.position);
+        if ((m & BitMask.Rotation) != 0)
+            DataWriter.WriteQuaternion(buffer, transform.rotation);
     }
     
     public ushort CalculateDataSize(SendMode mode, int mask)
@@ -120,7 +114,7 @@ public class UnitSyncS : MonoBehaviour, SyncableObject
         int s = 0;
         BitMask m = (BitMask)mask;
 
-        if ((mode & SendMode.Created) > 0)
+        if ( SendModeBit.Check(mode, SendMode.Created) )
             s += sizeof(byte);
 
         if ((m & BitMask.Position) != 0)

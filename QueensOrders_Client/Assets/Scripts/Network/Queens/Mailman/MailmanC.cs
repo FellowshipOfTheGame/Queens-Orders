@@ -12,10 +12,10 @@ using System.IO;
 /// ***** RECEIVE *****
 /// 
 /// Channel 0: Unreliable
-///     ID 1: Update characters
+///     ID 1:  ex: Update characters
 /// 
 /// Channel 1: Reliable
-///     ID 1:  Create/Destroy characters
+///     ID 1:  ex: Create/Destroy characters
 /// 
 /// 
 ///
@@ -44,7 +44,7 @@ public class MailmanC
     ///
     ///
 
-    public delegate SyncableObject CreateSyncableFromMessage(int index, SendMode mode, int mask, BinaryReader reader);
+    public delegate SyncableObject CreateSyncableFromMessage(int index, DataMessage reader);
 
     private List<CreateSyncableFromMessage> createFromMessage; // Ordered list of delegates to call when receiving create messages
     private List<SyncableObject> objects; // All syncable objects in game
@@ -64,7 +64,7 @@ public class MailmanC
     public void RegisterToNetwork(NetworkClient network)
     {
         network.RegisterMsgIDReceiver(RECEIVE_GENERAL_UPDATE, FetchUpdate);
-        network.RegisterMsgIDReceiver(RECEIVE_IMPORTANT_UPDATE, FetchReliable);
+        network.RegisterMsgIDReceiver(RECEIVE_IMPORTANT_UPDATE, FetchUpdate);
     }
 
     public void RegisterSyncable(int id, CreateSyncableFromMessage cfm)
@@ -81,74 +81,61 @@ public class MailmanC
 
     private bool FetchUpdate(BinaryReader reader, int size)
     {
-        UnityEngine.Debug.Log("[Unreliable] Receive syncable obj!!!");
-        while (reader.PeekChar() >= 0)
-        {
-            //UnityEngine.Debug.Log("reading...");
-            ushort index = reader.ReadUInt16();
-            //UnityEngine.Debug.Log("Index: " + index);
-            SendMode mode = (SendMode)reader.ReadByte();
-            //UnityEngine.Debug.Log("mode: " + mode);
-            byte mask = reader.ReadByte();
-            //UnityEngine.Debug.Log("mask: " + mask);
-            ushort msgDataSize = reader.ReadUInt16();
-            //UnityEngine.Debug.Log("data size: " + msgDataSize);
+        UnityEngine.Debug.Log("Receive syncable obj!!!");
 
-            if (index < objects.Count && objects[index] != null)
-            {   
-                /// TODO: Verify if object is of correct syncable type
-                // read if object is valid
-                objects[index].ReadFromBuffer(reader, mode, mask);
-            } else {
-                // ignore message data
-                reader.ReadBytes(msgDataSize);
-            }
-        }
-
-        return true;
-    }
-
-    private bool FetchReliable(BinaryReader reader, int size)
-    {
-        UnityEngine.Debug.Log("[Reliable] Receive syncable obj!!!");
+        MemoryStream mstream = (MemoryStream)reader.BaseStream;
+        DataMessage dataMsg = new DataMessage();
 
         while (reader.PeekChar() >= 0)
         {
             //UnityEngine.Debug.Log("reading...");
             ushort index = reader.ReadUInt16();
             //UnityEngine.Debug.Log("Index: " + index);
+            byte syncableType = reader.ReadByte();
+            //UnityEngine.Debug.Log("syncable: " + syncableType);
             SendMode mode = (SendMode)reader.ReadByte();
             //UnityEngine.Debug.Log("mode: " + mode);
             byte mask = reader.ReadByte();
             //UnityEngine.Debug.Log("mask: " + mask);
-
-            byte createdType = 0;
-
-            if ((mode & SendMode.Created) > 0)
-            {
-                createdType = reader.ReadByte();
-            }
-
             ushort msgDataSize = reader.ReadUInt16();
             //UnityEngine.Debug.Log("data size: " + msgDataSize);
+            
+            // Create DataMessage
+            MemoryStream msgStream = new MemoryStream(mstream.GetBuffer(), (int)mstream.Position, msgDataSize, false);
+            dataMsg.mode = mode;
+            dataMsg.mask = mask;
+            dataMsg.data = new BinaryReader(msgStream);
 
             // Process data
-            if ((mode & SendMode.Created) > 0)
+            if ( SendModeBit.Check(mode, SendMode.Created) )
             {
-                SyncableObject comp = createFromMessage[createdType](index, mode, mask, reader);
+                SyncableObject comp = createFromMessage[syncableType](index, dataMsg);
                 SyncableCreated(comp, index);
             }
             else
             {
                 if (index < objects.Count && objects[index] != null)
                 {
-                    objects[index].ReadFromBuffer(reader, mode, mask);
+                    if (objects[index].getSyncableType() != syncableType)
+                    {
+                        UnityEngine.Debug.LogError("Incompatible syncable object type message! index: " + index
+                                                    + "expected type: " + objects[index].getSyncableType() 
+                                                    + "received: " + syncableType);
+                    }
+                    else
+                    {
+                        objects[index].ReadFromBuffer(dataMsg);
+                    }
                 }
-                else
-                {
-                    // ignore message data
-                    reader.ReadBytes(msgDataSize);
-                }
+            }
+
+            // Advance read position
+            reader.ReadBytes(msgDataSize);
+
+            if (SendModeBit.Check(mode, SendMode.Destroyed))
+            {
+                objects[index].Destroy();
+                objects[index] = null;
             }
         }
 
@@ -160,6 +147,11 @@ public class MailmanC
         // Resize list
         while (objects.Count <= index)
             objects.Add(null);
+
+        if (objects[index] != null)
+        {
+            UnityEngine.Debug.LogError("Creating object over an already existing object? index: "+index);
+        }
 
         UnityEngine.Assertions.Assert.IsTrue(objects[index] == null);
 
